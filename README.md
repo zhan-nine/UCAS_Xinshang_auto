@@ -1,7 +1,7 @@
 # UCAS_Xinshang_auto —— 国科大心赏心理测评自动答题插件
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-2f7bff.svg)
-![Version](https://img.shields.io/badge/version-1.3.1-34c759.svg)
+![Version](https://img.shields.io/badge/version-1.3.2-34c759.svg)
 ![Platform](https://img.shields.io/badge/Tampermonkey-userscript-orange.svg)
 
 插件名称：**UCAS 国科大心赏心理测评自动答题 (SDS/QSA/UPI/16PF)**
@@ -15,7 +15,7 @@
 | 大学生人格测验 UPI | 64 | 单选（是/否、有/没有） |
 | 卡特尔 16 种人格因素测验 16PF | 187 | 单选（三选一） |
 
-作答方向：**健康 / 正常优先**（详见下文"作答规则"）。四卷合计约 1.5 分钟完成（可调）。
+作答方向：**健康 / 正常优先**（详见下文"作答规则"）。四卷合计约 1 分钟完成（可调）。
 
 > 重要：本插件直接调用系统接口生成并提交答案，提交即产生**真实测评记录**，会进入你的心理健康档案。请自行评估风险后使用。
 
@@ -68,7 +68,7 @@ https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-a
 ```js
 const CONFIG = {
   dryRun: false,                        // 默认直接提交；true=只预览
-  pacing: { mode: 'timed', minMs: 200, maxMs: 400 }, // 每题节奏；'instant' 立即提交
+  pacing: { mode: 'timed', minMs: 150, maxMs: 200 }, // 每题节奏；'instant' 立即提交
   pf16Pole: {                           // 16PF 各因子"健康"极向
     high: ['A','B','C','F','G','H','Q3'], // 高分即理想
     low:  ['L','O','Q4'],                 // 低分即理想
@@ -79,7 +79,7 @@ const CONFIG = {
 };
 ```
 
-- `pacing.mode = 'timed'` 会在 `Paper/GetPaperInfo` 与 `Paper/Submit` 之间按 `minMs~maxMs` 真实等待；默认每题 0.2~0.4s，四卷合计约 1.5 分钟。调大更接近真人节奏，调小更快。
+- `pacing.mode = 'timed'` 会在 `Paper/GetPaperInfo` 与 `Paper/Submit` 之间按 `minMs~maxMs` 真实等待；默认每题 **150~200ms（逐题随机）**，四卷合计约 1 分钟。调大更接近真人节奏，调小更快。
 - 想在提交前核对，把 `dryRun` 设为 `true`，或直接点面板里的"仅预览（不提交）"。
 
 ## 四、作答规则
@@ -154,11 +154,11 @@ const CONFIG = {
 
 **发布流程**
 
-1. 修改 `ucas-psych-autoanswer.user.js`，并**提升 `@version`**（例如 `1.3.0 → 1.3.1`）。
+1. 修改 `ucas-psych-autoanswer.user.js`，并**提升 `@version`**（例如 `1.3.1 → 1.3.2`）。
 2. 提交并推送：
 
    ```bash
-   git add -A && git commit -m "v1.3.1: ..." && git push origin main
+   git add -A && git commit -m "v1.3.2: ..." && git push origin main
    ```
 
 3. GitHub Actions（[`.github/workflows/validate-userscript.yml`](.github/workflows/validate-userscript.yml)）会做语法检查、元数据校验与 **`@version` 递增检查**；

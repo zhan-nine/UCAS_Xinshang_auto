@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         UCAS 国科大心赏心理测评自动答题 (SDS/QSA/UPI/16PF)
 // @namespace    local.ucas.psych.autoanswer
-// @version      1.3.1
+// @version      1.3.2
 // @description  在国科大"心赏"心理测评系统自动完成 抑郁自评(SDS)、自杀态度(QSA)、大学生人格(UPI)、卡特尔16PF 四个量表（健康/正常方向作答）。需先手动登录，登录后一键答题。
 // @author       Xinpei Zhang (zhan-nine)
 // @copyright    2026 Xinpei Zhang
@@ -44,8 +44,8 @@
   const CONFIG = {
     dryRun: false,                      // false=直接提交（默认一键答题）
     // 作答节奏：'timed' 会模拟每题作答时长并真实等待；'instant' 立即提交。
-    // 提速：默认每题 0.2~0.4s，四卷合计约 1.5 分钟；可自行调小。
-    pacing: { mode: 'timed', minMs: 200, maxMs: 400 },
+    // 提速：默认每题 150~200ms（逐题随机），四卷合计约 1 分钟；可自行调小。
+    pacing: { mode: 'timed', minMs: 150, maxMs: 200 },
     // 16PF 各因子"健康"极向：
     //   high = 高分即理想，low = 低分即理想，mid = 居中即理想
     pf16Pole: {
