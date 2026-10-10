@@ -39,12 +39,7 @@
 > 已经用过油猴？三步即可。**从没用过，请直接跳到[一、新手完整教程](#一新手完整教程没用过油猴必读)**，那里有每一屏该点哪里的图文级说明。
 
 1. 给浏览器装上 **Tampermonkey** 扩展（Chrome / Edge 装完还需在扩展管理页打开「开发者模式」，原因见教程 1.2）。
-2. 点击安装链接 → 在油猴弹出的安装页点「安装」：
-
-   ```
-   https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js
-   ```
-
+2. 点击 [**安装链接**](https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js) → 在油猴弹出的安装页点「安装」。
 3. **手动登录**系统（含滑块验证）→ 打开 `https://mhec.ucas.ac.cn/Visitors/Waiting_test?MenuID=111` → 点右下角面板的「**⚡ 一键自动答题**」。
 
 ---
@@ -113,7 +108,7 @@
 ### 1.3 第二步：安装本脚本
 
 1. 确认上一步的**管理器已安装完毕**，且它的图标出现在浏览器**右上角工具栏**（看不到图标就点一下工具栏的「拼图」形状按钮，把它固定出来）。
-2. **点击**下面这条链接（或复制到地址栏回车）：
+2. **点击**下面的 [**安装链接**](https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js)，或把该链接复制到地址栏回车：
 
    ```
    https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js
