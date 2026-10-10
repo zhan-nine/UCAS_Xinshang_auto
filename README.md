@@ -19,36 +19,169 @@
 
 > 重要：本插件直接调用系统接口生成并提交答案，提交即产生**真实测评记录**，会进入你的心理健康档案。请自行评估风险后使用。
 
-## 安装油猴插件
+## 目录
 
-**方式一（推荐，立即可用）**：直接点击下面的安装链接，Tampermonkey 会弹出安装页：
-
-```
-https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js
-```
-
-> 脚本内置 `@updateURL` / `@downloadURL` 指向该 GitHub 原始文件，安装后 Tampermonkey 会自动检查并更新到最新版本（一般每 24 小时一次，也可在管理面板手动触发）。
-> 备选（MIME 更标准，但 CDN 缓存约 12 小时）：`https://cdn.jsdelivr.net/gh/zhan-nine/UCAS_Xinshang_auto@main/ucas-psych-autoanswer.user.js`
-
-**方式二**：打开 Tampermonkey 面板 → "添加新脚本"，把 [`ucas-psych-autoanswer.user.js`](ucas-psych-autoanswer.user.js) 的全部内容粘贴进去并保存。
-
-**方式三**：Greasy Fork 安装链接：
-
-<!-- TODO: 由作者补上 Greasy Fork 安装链接 -->
-`（待补充）`
-
-> **Greasy Fork 说明**：Greasy Fork 对新注册账号有约 **7 天**的发布冷却期（反垃圾机制）。本脚本暂未上架 Greasy Fork，
-> 作者计划于 **2026-10-17** 前后补充 Greasy Fork 安装链接；在此之前请使用上面的**方式一**直装，安装与自动更新均不受影响。
-> Greasy Fork 会重写 `@updateURL` / `@downloadURL` 指向自身，因此同一份脚本可同时发布于 GitHub 与 Greasy Fork，二者互不冲突。
-
+- [安装（三步快速版）](#安装三步快速版)
+- [一、新手完整教程（没用过油猴必读）](#一新手完整教程没用过油猴必读)
+- [二、使用](#二使用)
+- [三、配置（脚本顶部 `CONFIG`）](#三配置脚本顶部-config)
+- [四、作答规则](#四作答规则)
+- [五、接口说明](#五接口说明)
+- [六、风险与免责](#六风险与免责)
+- [七、发布与更新（GitHub 直发）](#七发布与更新github-直发)
+- [八、许可证](#八许可证)
+- [九、作者](#九作者)
 
 ---
 
-## 一、安装
+## 安装（三步快速版）
 
-1. 浏览器安装 [Tampermonkey](https://www.tampermonkey.net/) 扩展。
-2. 打开 Tampermonkey 面板 → "添加新脚本"，把 [`ucas-psych-autoanswer.user.js`](ucas-psych-autoanswer.user.js) 的全部内容粘贴进去并保存。
-3. 确认脚本处于启用状态，`@match` 允许 `https://mhec.ucas.ac.cn/*`。
+> 已经用过油猴？三步即可。**从没用过，请直接跳到[一、新手完整教程](#一新手完整教程没用过油猴必读)**，那里有每一屏该点哪里的图文级说明。
+
+1. 给浏览器装上 **Tampermonkey** 扩展（Chrome / Edge 装完还需在扩展管理页打开「开发者模式」，原因见教程 1.2）。
+2. 点击安装链接 → 在油猴弹出的安装页点「安装」：
+
+   ```
+   https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js
+   ```
+
+3. **手动登录**系统（含滑块验证）→ 打开 `https://mhec.ucas.ac.cn/Visitors/Waiting_test?MenuID=111` → 点右下角面板的「**⚡ 一键自动答题**」。
+
+---
+
+## 一、新手完整教程（没用过油猴必读）
+
+### 1.1 油猴是什么？
+
+「**油猴**」是**用户脚本管理器**的俗称。它本身只是一个浏览器扩展，作用是让你能安装别人写的小脚本，给网页增加原本没有的功能。
+
+本插件的本体是一个 `.user.js` 脚本文件（就是仓库里的 [`ucas-psych-autoanswer.user.js`](ucas-psych-autoanswer.user.js)）。**它不能单独运行，必须先装一个"管理器"来加载它**——就像 `.doc` 文件需要先装 Word。
+
+| 管理器 | 支持的浏览器 | 说明 |
+|---|---|---|
+| **Tampermonkey**（推荐） | Chrome、Edge、Firefox、Safari、国产 Chromium 系 | 用户量最大，本教程以其为准 |
+| Violentmonkey | Chrome、Edge、Firefox、Opera | 开源、免费，界面更简洁，用法几乎一样 |
+| Greasemonkey | **仅** Firefox | Firefox 的老牌管理器 |
+
+> 三者**任选其一**即可，装好后安装脚本的步骤基本相同。下文截图文字以 Tampermonkey 为例；若你用 Violentmonkey，按钮可能叫「安装 / Install」而非「添加至 Chrome」。
+
+### 1.2 第一步：安装用户脚本管理器
+
+请**对号入座**找到你的浏览器。每一步都按顺序做，不要跳。
+
+#### Chrome（谷歌浏览器）
+
+1. 打开 Chrome 应用商店的 [Tampermonkey 页面](https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)。
+2. 点蓝色按钮「**添加至 Chrome**」→ 弹窗中点「**添加扩展程序**」。
+3. ⚠️ **关键一步，很多人卡在这里**：地址栏输入 `chrome://extensions` 回车 → 打开页面**右上角**的「**开发者模式**」开关。
+   - **为什么必须开**：Chrome 新版本（MV3）规定，扩展要以"用户脚本"方式注入网页，必须先开启开发者模式。不开启会出现「此扩展程序可能已损坏」或**脚本装了却完全不生效**。
+   - 开完保持开启即可，**不需要**再做其他操作（不会影响日常上网）。
+
+#### Edge（微软浏览器）
+
+1. 打开 Edge 加载项商店的 [Tampermonkey 页面](https://microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd)。
+2. 点「**获取**」→ 弹窗中点「**添加扩展**」。
+3. 建议同样开启开发者模式：地址栏输入 `edge://extensions` → 打开「**开发人员模式**」。（Edge 通常不开也能用，但开了更稳妥）
+
+> Chrome 与 Edge 都是 Chromium 内核，扩展**可以互装**：你在 Edge 里也能用上面 Chrome 商店的链接（需先在 Edge 开启"允许来自其他应用商店的扩展"）。
+
+#### Firefox（火狐浏览器）
+
+1. 打开 [Firefox 附加组件 - Tampermonkey](https://addons.mozilla.org/firefox/addon/tampermonkey/)，点「**添加到 Firefox**」→「**添加**」。
+2. Firefox **不需要开发者模式**，一般也不会有"已损坏"提示。若弹出权限请求，选「允许」。
+3. 若偏好开源方案，可改装 [Violentmonkey](https://addons.mozilla.org/firefox/addon/violentmonkey/) 或 [Greasemonkey](https://addons.mozilla.org/firefox/addon/greasemonkey/)。
+4. 装完在地址栏输入 `about:addons` 可查看/管理已装扩展。
+
+#### Safari（macOS / iPhone / iPad）
+
+1. **Mac**：App Store 搜索「**Tampermonkey**」安装 → 打开 Safari → 菜单「设置 → 扩展」勾选 Tampermonkey → 切到「网站」标签，给 `mhec.ucas.ac.cn` 授权「允许」。
+2. **iPhone / iPad**：App Store 安装 Tampermonkey → 「设置 → Safari → 扩展」启用 → 允许该扩展访问 `mhec.ucas.ac.cn`。
+3. Safari 上可用的脚本管理器较少（Tampermonkey、Stay、Userscripts），装好后***安装脚本的步骤与下文一致***。
+
+#### 国产浏览器（360、QQ、搜狗、夸克、UC 等）
+
+- 这些浏览器大多基于 Chromium，**通常可以安装 Chrome 扩展**：在它们的「扩展中心 / 应用中心」搜索 **Tampermonkey**，或下载 `.crx` 文件后拖进扩展管理页。
+- 同样找一下「**开发者模式**」开关并打开（入口一般在扩展管理页）。
+- ⚠️ 部分"精简版/极速版"国产浏览器**阉割了扩展功能**。若翻遍设置都找不到"扩展"入口，请改用 **Chrome / Edge / Firefox** 桌面版。
+
+#### 手机端
+
+- **Android**：可用 [Kiwi Browser](https://play.google.com/store/apps/details?id=com.kiwi.browser)（直接支持 Chrome 扩展）或 Firefox for Android，装 Tampermonkey 后流程相同。
+- **iOS / iPadOS**：用 Safari + Tampermonkey（App Store），或 Userscripts、Stay 等管理器。
+- 手机端操作体验不如桌面，**建议在电脑上完成测评**。
+
+### 1.3 第二步：安装本脚本
+
+1. 确认上一步的**管理器已安装完毕**，且它的图标出现在浏览器**右上角工具栏**（看不到图标就点一下工具栏的「拼图」形状按钮，把它固定出来）。
+2. **点击**下面这条链接（或复制到地址栏回车）：
+
+   ```
+   https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js
+   ```
+
+3. 油猴会**自动拦截**这个链接，弹出「**安装用户脚本**」页面，上面会显示脚本名称、版本、作者、适用网站（`@match`）。
+4. 点页面上的「**安装 / Install**」按钮。
+5. 若**没有弹出安装页**，而是直接显示了一大堆代码，请见下方 [1.6 常见问题](#16-常见问题防呆) 的 Q1。
+
+#### 备选安装方式（方式一失败时用）
+
+- **方式二·自动导入**：把链接换成 CDN 版本再点一次：`https://cdn.jsdelivr.net/gh/zhan-nine/UCAS_Xinshang_auto@main/ucas-psych-autoanswer.user.js`
+- **方式三·手动粘贴**（最保险）：点管理器图标 →「**管理面板 / Dashboard**」→ 左侧「**实用工具 / Utilities**」右侧或顶部菜单找「**+**」/「添加新脚本」→ 打开 [`ucas-psych-autoanswer.user.js`](ucas-psych-autoanswer.user.js) 全文，复制后**全选删除**编辑器里的模板内容、粘贴进去 → 按 `Ctrl+S`（Mac 为 `Cmd+S`）保存。
+- **方式四·Greasy Fork**（尚未上架）：
+
+  <!-- TODO: 由作者补上 Greasy Fork 安装链接 -->
+  `（待补充）`
+
+  > **Greasy Fork 说明**：Greasy Fork 对新注册账号有约 **7 天**的发布冷却期（反垃圾机制）。本脚本暂未上架 Greasy Fork，
+  > 作者计划于 **2026-10-17** 前后补充链接；在此之前请用上述直装方式，安装与自动更新均不受影响。
+  > Greasy Fork 会重写 `@updateURL` / `@downloadURL` 指向自身，因此同一份脚本可同时发布于 GitHub 与 Greasy Fork，二者互不冲突。
+
+### 1.4 第三步：验证是否装好
+
+1. 点浏览器右上角的管理器图标，看是否有**数字角标**（如 `1`）——表示当前页面有 N 个脚本生效。
+2. 点「**管理面板 / Dashboard**」→「已安装脚本」列表里应能看到「**UCAS 国科大心赏心理测评自动答题 (SDS/QSA/UPI/16PF)**」，且左侧开关是**打开**状态。
+3. 点进该脚本详情，确认 `@match` 一行包含 `https://mhec.ucas.ac.cn/*`。
+4. 确认 `@version` 与[仓库最新版本](https://github.com/zhan-nine/UCAS_Xinshang_auto)一致（脚本会自动更新，见 Q4）。
+
+### 1.5 第四步：开始使用
+
+见下一节 **[二、使用](#二使用)**。核心就一句话：**先手动登录，再打开待测页，点右下角面板的「一键自动答题」**。
+
+### 1.6 常见问题（防呆）
+
+**Q1：点安装链接没反应，或页面直接显示一堆代码？**
+- 按顺序试：
+  1. 确认管理器**已安装且是启用状态**；
+  2. **刷新**该页面，或把链接重新粘贴到地址栏再回车；
+  3. 换**方式二**的 jsDelivr 链接再点一次；
+  4. 仍不行就用**方式三·手动粘贴**（最稳，一次成功）。
+
+**Q2：Chrome / Edge 提示「此扩展程序可能已损坏」，或脚本装了却完全不生效？**
+- 打开 `chrome://extensions`（Edge：`edge://extensions`）→ 打开「**开发者模式 / 开发人员模式**」→ **完全重启浏览器**。这是 Chrome 新版最常见的坑。
+
+**Q3：已登录，但页面右下角没有「心赏自动答题」面板？**
+- 逐条排查（99% 是前三项）：
+  1. 当前网址是否为 `https://mhec.ucas.ac.cn/Visitors/Waiting_test?MenuID=111`（注意 **`Visitors` 首字母大写**，路径写错脚本不会触发）；
+  2. 按 `F5` **刷新页面**（脚本在页面加载后才注入）；
+  3. 点管理器图标，确认脚本**已启用**且**角标数字 ≥ 1**；
+  4. 打开管理面板，检查该脚本是否被误关闭、或显示报错；
+  5. 换 **Chrome / Edge / Firefox** 桌面版再试。
+
+**Q4：脚本会自动更新吗？怎么手动更新？**
+- 会。脚本内置了更新地址，管理器一般每 24 小时检查一次。
+- 手动更新：管理面板 →「**实用工具 / Utilities**」→「**检查用户脚本更新**」；或点脚本详情里的「检查更新」。
+
+**Q5：登录时出现的滑块验证能自动过吗？**
+- **不能，也不建议**。请**手动完成登录与滑块验证**，脚本只在你登录后接管答题环节，不接触你的账号密码。
+
+**Q6：怎么临时关闭或卸载？**
+- **临时关闭**：管理面板里点脚本右侧的开关。
+- **彻底卸载脚本**：管理面板里点「删除」。
+- **卸载管理器**：Chrome `chrome://extensions`、Edge `edge://extensions`、Firefox `about:addons` 中移除。
+
+**Q7：装脚本安全吗？**
+- 本脚本开源（[MIT](#八许可证)），代码可逐行审阅；它只读取你在 `mhec.ucas.ac.cn` 上的登录凭证（`sessionStorage` 中的 JWT）用于调用官方接口，且 `@match` 限定只在该网站生效。
+- **请勿**安装来源不明的脚本——管理器能读取你所有网站的页面内容，风险很高。
 
 ## 二、使用
 
