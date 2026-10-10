@@ -50,9 +50,16 @@ if (!name) fail('缺少 @name');
 if (!version) fail('缺少 @version');
 if (matches.length === 0) fail('缺少 @match 或 @include（脚本不会在任何页面生效）');
 
-// --- Greasy Fork 禁用项 ---
+// --- 更新地址字段 ---
+// 说明：GitHub 直装需要 @updateURL/@downloadURL 才能自动更新；
+//       Greasy Fork 会把这些字段重写为指向自己（因此二者可以共存）。
+//       默认仅告警；设置 STRICT_GF=1 时视为失败（用于"只发 Greasy Fork"的严格模式）。
+const strictGF = process.env.STRICT_GF === '1';
 ['updateURL', 'downloadURL', 'installURL'].forEach(function (k) {
-  if (meta(k)) fail('Greasy Fork 禁止使用 @' + k + '（更新由 Greasy Fork 托管，请删除该字段）');
+  if (!meta(k)) return;
+  const msg = '@' + k + ' 会被 Greasy Fork 重写/移除；若仅发布到 Greasy Fork 建议删除' +
+    '（GitHub 直装则需要保留）';
+  if (strictGF) fail(msg); else notes.push('警告：' + msg);
 });
 
 // --- 版本号格式 ---

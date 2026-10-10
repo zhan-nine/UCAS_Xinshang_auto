@@ -17,10 +17,24 @@
 
 ## 安装油猴插件
 
-Tampermonkey 安装链接：
+**方式一（推荐，立即可用）**：直接点击下面的安装链接，Tampermonkey 会弹出安装页：
 
-<!-- TODO: 由作者补上 Tampermonkey 安装链接 -->
+```
+https://cdn.jsdelivr.net/gh/zhan-nine/UCAS_Xinshang_auto@main/ucas-psych-autoanswer.user.js
+```
+
+> 脚本内置 `@updateURL` / `@downloadURL` 指向 GitHub 原始文件，安装后 Tampermonkey 会自动检查并更新到最新版本（一般每 24 小时一次，也可在管理面板手动触发）。
+
+**方式二**：打开 Tampermonkey 面板 → "添加新脚本"，把 [`ucas-psych-autoanswer.user.js`](ucas-psych-autoanswer.user.js) 的全部内容粘贴进去并保存。
+
+**方式三**：Greasy Fork 安装链接：
+
+<!-- TODO: 由作者补上 Greasy Fork 安装链接 -->
 `（待补充）`
+
+> **Greasy Fork 说明**：Greasy Fork 对新注册账号有约 **7 天**的发布冷却期（反垃圾机制）。本脚本暂未上架 Greasy Fork，
+> 作者计划于 **2026-10-17** 前后补充 Greasy Fork 安装链接；在此之前请使用上面的**方式一**直装，安装与自动更新均不受影响。
+> Greasy Fork 会重写 `@updateURL` / `@downloadURL` 指向自身，因此同一份脚本可同时发布于 GitHub 与 Greasy Fork，二者互不冲突。
 
 
 ---
@@ -117,7 +131,40 @@ const CONFIG = {
 - 16PF 计分键来自公开资料，已抽样核对关键题（如第 28 题应选"石头"），但不对结果解释负责。
 - 本脚本仅供学习研究，请遵守学校相关管理规定，使用者自行承担全部责任。
 
-## 七、作者
+## 七、发布与更新（GitHub 直发）
+
+本脚本以 GitHub 为主要发布源，用户无需 Greasy Fork 即可安装并自动更新。
+
+**分发链接**
+
+| 用途 | URL |
+|---|---|
+| 安装（推荐，MIME 正确） | `https://cdn.jsdelivr.net/gh/zhan-nine/UCAS_Xinshang_auto@main/ucas-psych-autoanswer.user.js` |
+| 自动更新（内置 `@updateURL`/`@downloadURL`） | `https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js` |
+
+> 为什么两者不同：jsDelivr 的 MIME 是 `application/javascript`，安装体验最好，但 `@main` 分支缓存较长；
+> GitHub raw 只缓存约 5 分钟，作为更新源能最快拿到新版本。
+
+**发布流程**
+
+1. 修改 `ucas-psych-autoanswer.user.js`，并**提升 `@version`**（例如 `1.3.0 → 1.3.1`）。
+2. 提交并推送：
+
+   ```bash
+   git add -A && git commit -m "v1.3.1: ..." && git push origin main
+   ```
+
+3. GitHub Actions（[`.github/workflows/validate-userscript.yml`](.github/workflows/validate-userscript.yml)）会做语法检查、元数据校验与 **`@version` 递增检查**；
+   若忘记升版本，CI 会失败并提示。
+4. 推送即生效：raw 几分钟内更新，Tampermonkey 在下一次检查更新时自动升级。
+
+**以后上架 Greasy Fork**
+
+- 到 Greasy Fork 发布时可直接粘贴同一份代码；GF 会**重写** `@updateURL` / `@downloadURL` 指向它自己，故二者可共存、互不冲突。
+- 但请注意 GF 规定：脚本**主体功能必须完整地托管在 Greasy Fork 上**，不允许靠外链加载主体代码。
+- 若只想发布于 Greasy Fork，可删除 `@updateURL` / `@downloadURL`；CI 默认仅对其告警，设置环境变量 `STRICT_GF=1` 可改为报错。
+
+## 八、作者
 
 - **作者**：Xinpei Zhang
 - **GitHub**：[@zhan-nine](https://github.com/zhan-nine)
