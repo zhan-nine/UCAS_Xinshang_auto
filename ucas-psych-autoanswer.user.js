@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         UCAS 国科大心赏心理测评自动答题 (SDS/QSA/UPI/16PF)
 // @namespace    local.ucas.psych.autoanswer
-// @version      1.1.0
+// @version      1.2.0
 // @description  在国科大"心赏"心理测评系统自动完成 抑郁自评(SDS)、自杀态度(QSA)、大学生人格(UPI)、卡特尔16PF 四个量表（健康/正常方向作答）。需先手动登录，登录后一键答题。
 // @author       zhan-nine
 // @homepageURL  https://github.com/zhan-nine/UCAS_Xinshang_auto
@@ -34,6 +34,9 @@
       mid: ['E', 'I', 'M', 'N', 'Q1', 'Q2'],
     },
     qsaExtreme: false,                 // false=用"比较赞同/比较不赞同"，true=用"完全赞同/完全不赞同"
+    // 少量随机性：仅在"安全变体"范围内随机，不影响整体健康结论；
+    // rate=每题被替换为安全变体的概率，maxFraction=每卷变体数量上限占比。
+    randomness: { enabled: true, rate: 0.08, maxFraction: 0.12 },
   };
 
   // ---------------------------------------------------------------------------
@@ -69,6 +72,8 @@
 
   // UPI：正向"测伪题"选"有"，其余选"否/没有"
   const UPI_POSITIVE_ITEMS = new Set([5, 20, 35, 50]);
+  // UPI 关键题：绝不随机（测伪题、想轻生、健康/心理卫生/咨询相关）
+  const UPI_CRITICAL_ITEMS = new Set([5, 20, 25, 35, 50, 61, 62, 63, 64]);
 
   // 16PF 官方计分键：字母 = 该题"高分选项"（B 因子为正确答案）
   const PF16_FACTOR_KEY = {
@@ -128,7 +133,15 @@
   function pickAnswer(question, strategy, extra) {
     const list = question.AnswerList || [];
     if (!list.length) return null;
-    const idx = STRATEGY[strategy](list.length, extra);
+    let name = strategy;
+    let ex = extra;
+    if (typeof strategy === 'string' && strategy.indexOf('index:') === 0) {
+      name = 'index';
+      ex = Number(strategy.slice(6));
+    }
+    const fn = STRATEGY[name] || STRATEGY.first;
+    const rawIdx = fn(list.length, ex);
+    const idx = Math.max(0, Math.min(list.length - 1, rawIdx));
     return list[idx];
   }
 
@@ -194,34 +207,88 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 各量表作答生成：返回 [{questionId, answerId, strategy, optionName}]
+  // 随机性：只在"安全变体"集合内随机；关键题（critical）永不随机
+  // ---------------------------------------------------------------------------
+  function applyRandomness(specs) {
+    const cfg = CONFIG.randomness || {};
+    const chosen = specs.map(function (s) {
+      if (!cfg.enabled || s.critical || !s.alt || !s.alt.length) return s.primary;
+      if (Math.random() < (cfg.rate || 0)) return s.alt[Math.floor(Math.random() * s.alt.length)];
+      return s.primary;
+    });
+    // 数量上限，避免随机过多
+    const max = Math.max(1, Math.round(specs.length * (cfg.maxFraction || 0.12)));
+    const idxs = [];
+    chosen.forEach(function (st, i) { if (st !== specs[i].primary) idxs.push(i); });
+    for (let i = idxs.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = idxs[i]; idxs[i] = idxs[j]; idxs[j] = t;
+    }
+    idxs.slice(max).forEach(function (i) { chosen[i] = specs[i].primary; });
+    return chosen;
+  }
+
+  function resolveAnswers(paperInfo, specs) {
+    const strategies = applyRandomness(specs);
+    return specs.map(function (s, i) {
+      const a = pickAnswer(paperInfo.QuestionList[i], strategies[i]);
+      return {
+        questionId: s.questionId,
+        answerId: a && a.AnswerID,
+        optionName: a && a.AnswerName,
+        strategy: strategies[i],
+        factor: s.factor,
+        varied: strategies[i] !== s.primary,
+      };
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // 各量表作答生成：返回"选择规格" [{questionId, primary, alt, critical, factor}]
+  //   primary = 健康方向的默认策略；alt = 仍属安全范围的可选变体；
+  //   critical = true 表示关键题，永不随机。
   // ---------------------------------------------------------------------------
   function buildSDS(paperInfo) {
     return (paperInfo.QuestionList || []).map(function (q, i) {
       const n = i + 1;
-      const st = SDS_POSITIVE_ITEMS.has(n) ? 'last' : 'first';
-      const a = pickAnswer(q, st);
-      return { questionId: q.QuestionID, answerId: a && a.AnswerID, optionName: a && a.AnswerName, strategy: st };
+      if (SDS_POSITIVE_ITEMS.has(n)) {
+        // 正向题：默认"绝大部分或全部时间"，偶尔退一格到"相当多时间"（仍属正向）
+        return { questionId: q.QuestionID, primary: 'last', alt: ['index:2'], critical: false };
+      }
+      // 症状题：默认"没有或很少"，偶尔到"小部分时间"；第19题(自杀意念)保护
+      return { questionId: q.QuestionID, primary: 'first', alt: ['index:1'], critical: n === 19 };
     });
   }
 
   function buildQSA(paperInfo) {
     return (paperInfo.QuestionList || []).map(function (q, i) {
       const n = i + 1;
-      let idx = 2; // 默认中立
-      if (QSA_AGREE_ITEMS.has(n)) idx = CONFIG.qsaExtreme ? 0 : 1;
-      else if (QSA_DISAGREE_ITEMS.has(n)) idx = CONFIG.qsaExtreme ? 4 : 3;
-      const a = pickAnswer(q, 'index', idx);
-      return { questionId: q.QuestionID, answerId: a && a.AnswerID, optionName: a && a.AnswerName, strategy: 'index:' + idx };
+      let primary;
+      let alt;
+      if (QSA_AGREE_ITEMS.has(n)) {
+        primary = CONFIG.qsaExtreme ? 'index:0' : 'index:1';
+        alt = CONFIG.qsaExtreme ? ['index:1'] : ['index:0'];
+      } else if (QSA_DISAGREE_ITEMS.has(n)) {
+        primary = CONFIG.qsaExtreme ? 'index:4' : 'index:3';
+        alt = CONFIG.qsaExtreme ? ['index:3'] : ['index:4'];
+      } else {
+        primary = 'index:2';
+        alt = ['index:1', 'index:3'];
+      }
+      return { questionId: q.QuestionID, primary: primary, alt: alt, critical: false };
     });
   }
 
   function buildUPI(paperInfo) {
     return (paperInfo.QuestionList || []).map(function (q, i) {
       const n = i + 1;
-      const st = UPI_POSITIVE_ITEMS.has(n) ? 'first' : 'last';
-      const a = pickAnswer(q, st);
-      return { questionId: q.QuestionID, answerId: a && a.AnswerID, optionName: a && a.AnswerName, strategy: st };
+      if (UPI_POSITIVE_ITEMS.has(n)) {
+        // 测伪题必须选"有"
+        return { questionId: q.QuestionID, primary: 'first', alt: [], critical: true };
+      }
+      // 一般症状题：默认"否"；少量允许"是"（仅增加极低总分，不会越过阳性阈值）
+      const critical = UPI_CRITICAL_ITEMS.has(n);
+      return { questionId: q.QuestionID, primary: 'last', alt: critical ? [] : ['first'], critical: critical };
     });
   }
 
@@ -229,20 +296,34 @@
     const poles = CONFIG.pf16Pole;
     return (paperInfo.QuestionList || []).map(function (q, i) {
       const n = i + 1;
-      let st;
-      let factor = '';
       if (PF16_NO_SCORE_ITEMS.has(n)) {
-        st = 'first'; // 是的
-        factor = '(效度)';
-      } else {
-        const k = PF16_KEY[n];
-        if (!k) { st = 'middle'; factor = '?'; }
-        else if (poles.high.indexOf(k.factor) >= 0) { st = letterToStrategy(k.letter); factor = k.factor + '↑'; }
-        else if (poles.low.indexOf(k.factor) >= 0) { st = invertStrategy(k.letter); factor = k.factor + '↓'; }
-        else { st = 'middle'; factor = k.factor + '·'; }
+        // 效度题：固定选"是的"
+        return { questionId: q.QuestionID, primary: 'first', alt: [], critical: true, factor: '(效度)' };
       }
-      const a = pickAnswer(q, st);
-      return { questionId: q.QuestionID, answerId: a && a.AnswerID, optionName: a && a.AnswerName, strategy: st, factor: factor };
+      const k = PF16_KEY[n];
+      if (!k) return { questionId: q.QuestionID, primary: 'middle', alt: [], critical: false, factor: '?' };
+      if (k.factor === 'B') {
+        // 聪慧性：固定选正确答案
+        return { questionId: q.QuestionID, primary: letterToStrategy(k.letter), alt: [], critical: true, factor: 'B↑' };
+      }
+      let primary;
+      let alt;
+      let factor;
+      if (poles.high.indexOf(k.factor) >= 0) {
+        primary = letterToStrategy(k.letter);
+        alt = primary === 'middle' ? [] : ['middle'];   // 偶尔降到中间项，方向不变
+        factor = k.factor + '↑';
+      } else if (poles.low.indexOf(k.factor) >= 0) {
+        primary = invertStrategy(k.letter);
+        alt = primary === 'middle' ? [] : ['middle'];
+        factor = k.factor + '↓';
+      } else {
+        primary = 'middle';
+        const ex = letterToStrategy(k.letter);
+        alt = ex === 'middle' ? [] : [ex];              // 偶尔偏到高分侧，幅度很小
+        factor = k.factor + '·';
+      }
+      return { questionId: q.QuestionID, primary: primary, alt: alt, critical: false, factor: factor };
     });
   }
 
@@ -298,10 +379,12 @@
     const builder = BUILDERS[paperId];
     if (!builder) throw new Error('未支持的量表: ' + paperId);
 
-    const answers = builder(paperInfo).map(function (a, i) {
+    const specs = builder(paperInfo);
+    const answers = resolveAnswers(paperInfo, specs).map(function (a, i) {
       a.questionIndex = i;
       return a;
     });
+    const variedCount = answers.filter(function (a) { return a.varied; }).length;
 
     const missing = answers.filter(function (a) { return !a.answerId; });
     if (missing.length) throw new Error(paperId + ' 有 ' + missing.length + ' 题未匹配到选项');
@@ -333,10 +416,12 @@
       PaperResultID: paperInfo.PaperResultID,
       payload: payload,
       answers: answers,
+      variedCount: variedCount,
     };
 
     if (opts.dryRun) {
-      log('  [dry-run] ' + paperId + ' 共 ' + answers.length + ' 题，预计时长 ' + summary.durationSec + 's，未提交');
+      log('  [dry-run] ' + paperId + ' 共 ' + answers.length + ' 题，随机变体 ' + variedCount +
+        ' 题，预计时长 ' + summary.durationSec + 's，未提交');
       return summary;
     }
 
@@ -401,6 +486,9 @@
   // UI
   // ---------------------------------------------------------------------------
   function log(msg) {
+    // eslint-disable-next-line no-console
+    console.log('[UCAS-AA]', msg);
+    if (typeof document === 'undefined') return;
     const line = document.createElement('div');
     line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
     const box = ui.log || document.getElementById('ucas-aa-log');
@@ -408,8 +496,6 @@
       box.appendChild(line);
       box.scrollTop = box.scrollHeight;
     }
-    // eslint-disable-next-line no-console
-    console.log('[UCAS-AA]', msg);
   }
 
   function makeButton(text, fn, opts) {
@@ -558,6 +644,8 @@
     buildQSA: buildQSA,
     buildUPI: buildUPI,
     build16PF: build16PF,
+    resolveAnswers: resolveAnswers,
+    applyRandomness: applyRandomness,
     buildTmpResult: buildTmpResult,
     PF16_KEY: PF16_KEY,
     injectPanel: injectPanel,
