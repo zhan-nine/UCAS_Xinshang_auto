@@ -20,10 +20,11 @@
 **方式一（推荐，立即可用）**：直接点击下面的安装链接，Tampermonkey 会弹出安装页：
 
 ```
-https://cdn.jsdelivr.net/gh/zhan-nine/UCAS_Xinshang_auto@main/ucas-psych-autoanswer.user.js
+https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js
 ```
 
-> 脚本内置 `@updateURL` / `@downloadURL` 指向 GitHub 原始文件，安装后 Tampermonkey 会自动检查并更新到最新版本（一般每 24 小时一次，也可在管理面板手动触发）。
+> 脚本内置 `@updateURL` / `@downloadURL` 指向该 GitHub 原始文件，安装后 Tampermonkey 会自动检查并更新到最新版本（一般每 24 小时一次，也可在管理面板手动触发）。
+> 备选（MIME 更标准，但 CDN 缓存约 12 小时）：`https://cdn.jsdelivr.net/gh/zhan-nine/UCAS_Xinshang_auto@main/ucas-psych-autoanswer.user.js`
 
 **方式二**：打开 Tampermonkey 面板 → "添加新脚本"，把 [`ucas-psych-autoanswer.user.js`](ucas-psych-autoanswer.user.js) 的全部内容粘贴进去并保存。
 
@@ -139,11 +140,13 @@ const CONFIG = {
 
 | 用途 | URL |
 |---|---|
-| 安装（推荐，MIME 正确） | `https://cdn.jsdelivr.net/gh/zhan-nine/UCAS_Xinshang_auto@main/ucas-psych-autoanswer.user.js` |
-| 自动更新（内置 `@updateURL`/`@downloadURL`） | `https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js` |
+| 安装 · 最新（推荐） | `https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js` |
+| 安装 · 备选（MIME 正确） | `https://cdn.jsdelivr.net/gh/zhan-nine/UCAS_Xinshang_auto@main/ucas-psych-autoanswer.user.js` |
+| 自动更新（内置 `@updateURL`/`@downloadURL`） | 同"安装 · 最新" |
 
-> 为什么两者不同：jsDelivr 的 MIME 是 `application/javascript`，安装体验最好，但 `@main` 分支缓存较长；
-> GitHub raw 只缓存约 5 分钟，作为更新源能最快拿到新版本。
+> **两者区别**：GitHub raw **只缓存约 5 分钟**，推送后立刻是最新版，作为安装与更新源最及时（Tampermonkey 依据 URL 末尾的 `.user.js` 识别，不受 `text/plain` 影响）。
+> jsDelivr 的 MIME 为 `application/javascript`、更"标准"，但 `@main` 分支缓存约 12 小时，可能拿到旧版本；
+> 如需立刻刷新，可访问 `https://purge.jsdelivr.net/gh/zhan-nine/UCAS_Xinshang_auto@main/ucas-psych-autoanswer.user.js` 清缓存。
 
 **发布流程**
 
