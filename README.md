@@ -1,5 +1,9 @@
 # UCAS_Xinshang_auto —— 国科大心赏心理测评自动答题插件
 
+![License: MIT](https://img.shields.io/badge/License-MIT-2f7bff.svg)
+![Version](https://img.shields.io/badge/version-1.3.1-34c759.svg)
+![Platform](https://img.shields.io/badge/Tampermonkey-userscript-orange.svg)
+
 插件名称：**UCAS 国科大心赏心理测评自动答题 (SDS/QSA/UPI/16PF)**
 
 国科大"心赏"心理测评（心理危机预防干预系统，`https://mhec.ucas.ac.cn`）的自动答题油猴（Tampermonkey）插件。登录后**一键**即可自动完成四个量表：
@@ -130,7 +134,7 @@ const CONFIG = {
 - 提交产生真实记录并进入心理档案，请确认你接受该后果。
 - 系统说明明确"拒绝作答、作答不完整或故意歪曲作答的个体将被甄别"，且每题记录作答时间；本脚本的健康作答与时长模拟**不保证**不被任何服务端规则识别。
 - 16PF 计分键来自公开资料，已抽样核对关键题（如第 28 题应选"石头"），但不对结果解释负责。
-- 本脚本仅供学习研究，请遵守学校相关管理规定，使用者自行承担全部责任。
+- 本项目以 MIT 许可开源，初衷为学习与研究；请遵守学校相关管理规定，使用者自行承担全部责任（见[许可证](#八许可证)）。
 
 ## 七、发布与更新（GitHub 直发）
 
@@ -167,11 +171,43 @@ const CONFIG = {
 - 但请注意 GF 规定：脚本**主体功能必须完整地托管在 Greasy Fork 上**，不允许靠外链加载主体代码。
 - 若只想发布于 Greasy Fork，可删除 `@updateURL` / `@downloadURL`；CI 默认仅对其告警，设置环境变量 `STRICT_GF=1` 可改为报错。
 
-## 八、作者
+## 八、许可证
+
+本项目采用 **MIT License** 开源发布，允许任何人自由使用、复制、修改、合并、发布、分发、再授权及销售本软件，**只需保留原始版权声明与许可声明**。
+
+```
+MIT License
+
+Copyright (c) 2026 Xinpei Zhang
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+完整文本见仓库根目录 [`LICENSE`](LICENSE)。
+
+> 说明：MIT 的"按原样提供、不提供任何担保"条款与上文"风险与免责"一致——作者不对使用本脚本产生的任何后果（包括心理档案记录）承担责任。
+
+## 九、作者
 
 - **作者**：Xinpei Zhang
 - **GitHub**：[@zhan-nine](https://github.com/zhan-nine)
 - **项目主页**：<https://github.com/zhan-nine/UCAS_Xinshang_auto>
 - **问题反馈**：<https://github.com/zhan-nine/UCAS_Xinshang_auto/issues>
 
-© 2026 Xinpei Zhang. 仅供个人学习与研究使用。
+© 2026 Xinpei Zhang. Released under the [MIT License](LICENSE).

@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         UCAS 国科大心赏心理测评自动答题 (SDS/QSA/UPI/16PF)
 // @namespace    local.ucas.psych.autoanswer
-// @version      1.3.0
+// @version      1.3.1
 // @description  在国科大"心赏"心理测评系统自动完成 抑郁自评(SDS)、自杀态度(QSA)、大学生人格(UPI)、卡特尔16PF 四个量表（健康/正常方向作答）。需先手动登录，登录后一键答题。
 // @author       Xinpei Zhang (zhan-nine)
 // @copyright    2026 Xinpei Zhang
+// @license      MIT
 // @homepageURL  https://github.com/zhan-nine/UCAS_Xinshang_auto
 // @supportURL   https://github.com/zhan-nine/UCAS_Xinshang_auto/issues
 // @updateURL    https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js
@@ -25,6 +26,9 @@
  *
  * © 2026 Xinpei Zhang. 本脚本仅供个人学习与研究使用，
  * 使用本脚本产生的一切后果由使用者自行承担（详见仓库 README 免责声明）。
+ *
+ * 许可 / License : MIT（详见仓库根目录 LICENSE 文件）
+ *                  允许自由使用、修改、分发，需保留本版权与许可声明。
  * ---------------------------------------------------------------
  */
 
