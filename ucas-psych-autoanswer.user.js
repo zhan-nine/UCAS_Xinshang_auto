@@ -1,9 +1,11 @@
 // ==UserScript==
-// @name         UCAS 心理测评自动答题 (SDS/QSA/UPI/16PF)
+// @name         UCAS 国科大心赏心理测评自动答题 (SDS/QSA/UPI/16PF)
 // @namespace    local.ucas.psych.autoanswer
-// @version      1.0.0
-// @description  在国科大"心理危机预防干预系统"待测页自动完成 抑郁自评(SDS)、自杀态度(QSA)、大学生人格(UPI)、卡特尔16PF 四个量表（健康/正常方向作答）。需先手动登录。
-// @author       local
+// @version      1.1.0
+// @description  在国科大"心赏"心理测评系统自动完成 抑郁自评(SDS)、自杀态度(QSA)、大学生人格(UPI)、卡特尔16PF 四个量表（健康/正常方向作答）。需先手动登录，登录后一键答题。
+// @author       zhan-nine
+// @homepageURL  https://github.com/zhan-nine/UCAS_Xinshang_auto
+// @supportURL   https://github.com/zhan-nine/UCAS_Xinshang_auto/issues
 // @match        https://mhec.ucas.ac.cn/*
 // @grant        none
 // @run-at       document-idle
@@ -20,8 +22,10 @@
   const PUBLISH_OVERRIDE = ''; // 留空则自动从待测列表取 PublishID
 
   const CONFIG = {
-    dryRun: true,                      // true=只预览不提交
-    pacing: { mode: 'timed', minMs: 800, maxMs: 1500 }, // mode: 'instant' | 'timed'
+    dryRun: false,                      // false=直接提交（默认一键答题）
+    // 作答节奏：'timed' 会模拟每题作答时长并真实等待；'instant' 立即提交。
+    // 提速：默认每题 0.2~0.4s，四卷合计约 1.5 分钟；可自行调小。
+    pacing: { mode: 'timed', minMs: 200, maxMs: 400 },
     // 16PF 各因子"健康"极向：
     //   high = 高分即理想，low = 低分即理想，mid = 居中即理想
     pf16Pole: {
@@ -31,6 +35,26 @@
     },
     qsaExtreme: false,                 // false=用"比较赞同/比较不赞同"，true=用"完全赞同/完全不赞同"
   };
+
+  // ---------------------------------------------------------------------------
+  // UI 运行时状态
+  // ---------------------------------------------------------------------------
+  const ui = { buttons: [], status: null, log: null };
+  let running = false;
+
+  function setStatus(text) {
+    if (ui.status) ui.status.textContent = text;
+  }
+  function setBusy(b) {
+    running = b;
+    ui.buttons.forEach(function (btn) { btn.disabled = b; });
+    document.querySelectorAll('#ucas-aa-panel [data-aa-btn]').forEach(function (btn) { btn.disabled = b; });
+  }
+  function refreshIdleStatus() {
+    if (running) return;
+    const uid = decodeJwtUserId();
+    setStatus(uid ? '已登录：' + uid : '未登录，请先登录系统');
+  }
 
   // ---------------------------------------------------------------------------
   // 量表作答规则数据
@@ -334,97 +358,187 @@
 
   async function runAll(opts) {
     opts = opts || {};
-    const list = await getWaitList();
-    const targets = opts.papers && opts.papers.length
-      ? list.filter(function (x) { return opts.papers.indexOf(x.PaperID) >= 0; })
-      : list;
-    log('待测量表: ' + targets.map(function (x) { return x.PaperID; }).join(', '));
-    const out = [];
-    for (const item of targets) {
-      try {
-        out.push(await runPaper(item, opts));
-      } catch (e) {
-        log('  ✘ ' + item.PaperID + ' 出错: ' + e.message);
+    if (running) { log('已有任务进行中，请稍候...'); return []; }
+    setBusy(true);
+    try {
+      const list = await getWaitList();
+      const targets = opts.papers && opts.papers.length
+        ? list.filter(function (x) { return opts.papers.indexOf(x.PaperID) >= 0; })
+        : list;
+      if (!targets.length) {
+        log('没有待测量表' + (opts.papers ? '（' + opts.papers.join('/') + '）' : ''));
+        setStatus('没有待测量表');
+        return [];
       }
+      const label = opts.dryRun ? '预览' : '答题';
+      log('开始' + label + '：' + targets.map(function (x) { return x.PaperID; }).join(', '));
+      const out = [];
+      for (let i = 0; i < targets.length; i++) {
+        const item = targets[i];
+        setStatus(label + '中 (' + (i + 1) + '/' + targets.length + ')：' + item.PaperID);
+        try {
+          out.push(await runPaper(item, opts));
+        } catch (e) {
+          log('  ✘ ' + item.PaperID + ' 出错: ' + e.message);
+        }
+      }
+      const ok = out.filter(function (s) { return s.response && (s.response.Code === 200 || s.response.Code === 0); }).length;
+      const msg = opts.dryRun ? '预览完成（未提交）' : '完成：成功 ' + ok + '/' + targets.length;
+      log(msg);
+      setStatus(msg);
+      return out;
+    } catch (e) {
+      log('ERR ' + e.message);
+      setStatus('出错：' + e.message);
+      return [];
+    } finally {
+      setBusy(false);
+      setTimeout(refreshIdleStatus, 4000);
     }
-    return out;
   }
 
   // ---------------------------------------------------------------------------
   // UI
   // ---------------------------------------------------------------------------
-  let logBox = null;
   function log(msg) {
     const line = document.createElement('div');
     line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
-    if (logBox) {
-      logBox.appendChild(line);
-      logBox.scrollTop = logBox.scrollHeight;
+    const box = ui.log || document.getElementById('ucas-aa-log');
+    if (box) {
+      box.appendChild(line);
+      box.scrollTop = box.scrollHeight;
     }
     // eslint-disable-next-line no-console
     console.log('[UCAS-AA]', msg);
   }
 
+  function makeButton(text, fn, opts) {
+    opts = opts || {};
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.aaBtn = '1';
+    b.textContent = text;
+    b.style.cssText = [
+      'font:inherit',
+      'border-radius:8px',
+      'border:1px solid ' + (opts.border || '#d9d9d9'),
+      'background:' + (opts.bg || '#f7f8fa'),
+      'color:' + (opts.color || '#333'),
+      'padding:' + (opts.big ? '10px 12px' : '6px 10px'),
+      'font-size:' + (opts.big ? '15px' : '12px'),
+      'font-weight:' + (opts.big ? '700' : '500'),
+      'cursor:pointer',
+      'transition:filter .15s,opacity .15s',
+      'white-space:nowrap',
+    ].join(';');
+    b.addEventListener('mouseenter', function () { if (!b.disabled) b.style.filter = 'brightness(.95)'; });
+    b.addEventListener('mouseleave', function () { b.style.filter = ''; });
+    b.addEventListener('click', function () { fn(); });
+    ui.buttons.push(b);
+    return b;
+  }
+
   function injectPanel() {
     if (document.getElementById('ucas-aa-panel')) return;
+
     const panel = document.createElement('div');
     panel.id = 'ucas-aa-panel';
-    panel.style.cssText = 'position:fixed;right:12px;bottom:12px;width:360px;max-height:70vh;z-index:999999;' +
-      'background:#fff;border:1px solid #d0d0d0;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.18);' +
-      'font:12px/1.5 -apple-system,Segoe UI,Microsoft YaHei,sans-serif;display:flex;flex-direction:column;overflow:hidden';
+    panel.style.cssText = 'position:fixed;right:14px;bottom:14px;width:288px;z-index:999999;' +
+      'background:#fff;border:1px solid #e3e6ea;border-radius:12px;' +
+      'box-shadow:0 10px 30px rgba(16,24,40,.16),0 2px 6px rgba(16,24,40,.06);' +
+      'font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;' +
+      'display:flex;flex-direction:column;overflow:hidden;color:#1f2430';
 
+    // 头部
     const head = document.createElement('div');
-    head.textContent = '心理测评自动答题';
-    head.style.cssText = 'padding:8px 10px;background:#2499ff;color:#fff;font-weight:600;display:flex;justify-content:space-between;align-items:center';
+    head.style.cssText = 'padding:10px 12px;background:linear-gradient(135deg,#2f7bff,#1e63e9);color:#fff;' +
+      'display:flex;justify-content:space-between;align-items:center;gap:8px';
+    const title = document.createElement('div');
+    title.style.cssText = 'font-weight:700;font-size:13px';
+    title.textContent = '心赏自动答题';
     const collapse = document.createElement('span');
     collapse.textContent = '—';
-    collapse.style.cssText = 'cursor:pointer;padding:0 6px';
+    collapse.style.cssText = 'cursor:pointer;padding:0 6px;font-weight:700;user-select:none';
+    head.appendChild(title);
     head.appendChild(collapse);
 
+    // 主体
     const body = document.createElement('div');
-    body.style.cssText = 'padding:8px 10px;display:flex;flex-direction:column;gap:6px;overflow:auto';
+    body.style.cssText = 'padding:12px;display:flex;flex-direction:column;gap:10px;overflow:auto';
 
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px';
-    function mkBtn(text, fn, color) {
-      const b = document.createElement('button');
-      b.textContent = text;
-      b.style.cssText = 'padding:4px 8px;border:1px solid #ccc;border-radius:4px;background:' + (color || '#f7f7f7') + ';cursor:pointer;font-size:12px';
-      b.addEventListener('click', fn);
-      return b;
-    }
+    // 状态
+    ui.status = document.createElement('div');
+    ui.status.id = 'ucas-aa-status';
+    ui.status.style.cssText = 'font-size:12px;color:#5a6472;background:#f5f7fa;border:1px solid #eef1f5;' +
+      'border-radius:8px;padding:7px 9px;word-break:break-all';
 
-    const dryRunLabel = document.createElement('label');
-    dryRunLabel.style.cssText = 'display:flex;align-items:center;gap:4px';
-    const dryChk = document.createElement('input');
-    dryChk.type = 'checkbox';
-    dryChk.checked = CONFIG.dryRun;
-    dryChk.addEventListener('change', function () { CONFIG.dryRun = dryChk.checked; log('dry-run = ' + CONFIG.dryRun); });
-    dryRunLabel.appendChild(dryChk);
-    dryRunLabel.appendChild(document.createTextNode('dry-run（只预览不提交）'));
+    // 一键答题（主按钮）
+    const main = makeButton('⚡ 一键自动答题', function () { runAll({}); }, {
+      big: true, bg: 'linear-gradient(135deg,#34c759,#22a447)', border: '#22a447', color: '#fff',
+    });
+    main.style.width = '100%';
 
-    row.appendChild(mkBtn('预览全部', function () { runAll({ dryRun: true }).catch(function (e) { log('ERR ' + e.message); }); }, '#fff7e6'));
-    row.appendChild(mkBtn('全自动完成', function () { runAll({}).catch(function (e) { log('ERR ' + e.message); }); }, '#ffe9e9'));
-    ['SDS', 'QSA', 'UPI', '16PF'].forEach(function (p) {
-      row.appendChild(mkBtn(p, function () { runAll({ papers: [p] }).catch(function (e) { log('ERR ' + e.message); }); }));
+    // 单量表按钮
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px';
+    [['SDS', '抑郁自评'], ['QSA', '自杀态度'], ['UPI', '人格测验'], ['16PF', '16 种人格']].forEach(function (p) {
+      const b = makeButton(p[0] + ' · ' + p[1], function () { runAll({ papers: [p[0]] }); });
+      b.style.width = '100%';
+      b.style.padding = '7px 6px';
+      b.style.fontSize = '12px';
+      grid.appendChild(b);
     });
 
-    logBox = document.createElement('div');
-    logBox.style.cssText = 'height:200px;overflow:auto;background:#0f1115;color:#b7e1a1;font-family:Consolas,monospace;font-size:11px;padding:6px;border-radius:4px;white-space:pre-wrap';
+    // 仅预览
+    const preview = makeButton('仅预览（不提交）', function () { runAll({ dryRun: true }); }, {
+      bg: '#fff', border: '#e0e3e8', color: '#6b7280',
+    });
+    preview.style.width = '100%';
+    preview.style.padding = '6px 10px';
+    preview.style.fontSize = '12px';
 
-    body.appendChild(dryRunLabel);
-    body.appendChild(row);
-    body.appendChild(logBox);
+    // 日志
+    const logHead = document.createElement('div');
+    logHead.style.cssText = 'display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#8a93a0;margin-top:2px';
+    const logTitle = document.createElement('span');
+    logTitle.textContent = '运行日志';
+    const logToggle = document.createElement('span');
+    logToggle.textContent = '收起';
+    logToggle.style.cssText = 'cursor:pointer;user-select:none';
+    logHead.appendChild(logTitle);
+    logHead.appendChild(logToggle);
+
+    ui.log = document.createElement('div');
+    ui.log.id = 'ucas-aa-log';
+    ui.log.style.cssText = 'height:132px;overflow:auto;background:#0f1115;color:#b7e1a1;' +
+      'font-family:Consolas,Menlo,monospace;font-size:11px;line-height:1.5;padding:8px;border-radius:8px;white-space:pre-wrap';
+
+    body.appendChild(ui.status);
+    body.appendChild(main);
+    body.appendChild(grid);
+    body.appendChild(preview);
+    body.appendChild(logHead);
+    body.appendChild(ui.log);
     panel.appendChild(head);
     panel.appendChild(body);
     document.body.appendChild(panel);
+
+    logToggle.addEventListener('click', function () {
+      const hidden = ui.log.style.display === 'none';
+      ui.log.style.display = hidden ? 'block' : 'none';
+      logToggle.textContent = hidden ? '收起' : '展开';
+    });
 
     let collapsed = false;
     collapse.addEventListener('click', function () {
       collapsed = !collapsed;
       body.style.display = collapsed ? 'none' : 'flex';
       collapse.textContent = collapsed ? '+' : '—';
+      if (!collapsed) panel.style.width = '288px';
+      if (collapsed) panel.style.width = 'auto';
     });
+
+    refreshIdleStatus();
   }
 
   // 只在待测页出现面板
@@ -446,6 +560,7 @@
     build16PF: build16PF,
     buildTmpResult: buildTmpResult,
     PF16_KEY: PF16_KEY,
+    injectPanel: injectPanel,
   };
   // 浏览器环境下启动 UI
   if (typeof window !== 'undefined' && typeof document !== 'undefined') {
