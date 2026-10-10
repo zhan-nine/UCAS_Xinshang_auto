@@ -1,0 +1,72 @@
+name: Validate userscript
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ucas-psych-autoanswer.user.js'
+      - 'scripts/check-userscript.mjs'
+      - '.github/workflows/validate-userscript.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ucas-psych-autoanswer.user.js'
+      - 'scripts/check-userscript.mjs'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Syntax check
+        run: node --check ucas-psych-autoanswer.user.js
+
+      - name: Resolve previous @version
+        id: prev
+        shell: bash
+        run: |
+          FILE=ucas-psych-autoanswer.user.js
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+          fi
+
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
+            BASE="HEAD^"
+          fi
+
+          if git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
+            CHANGED="$(git diff --name-only "$BASE" HEAD -- "$FILE")"
+          else
+            CHANGED="$FILE"
+          fi
+
+          if [ -z "$CHANGED" ]; then
+            echo "本次未改动 $FILE，跳过 @version 递增检查。"
+            PREV=""
+          elif git cat-file -e "${BASE}:${FILE}" 2>/dev/null; then
+            PREV="$(git show "${BASE}:${FILE}" | grep -m1 -oE '@version[[:space:]]+[0-9]+(\.[0-9]+)*' | grep -oE '[0-9]+(\.[0-9]+)*')"
+          else
+            PREV=""
+          fi
+
+          echo "version=${PREV}" >> "$GITHUB_OUTPUT"
+          echo "上一次 @version: ${PREV:-<无 / 跳过>}"
+
+      - name: Validate metadata and version bump
+        env:
+          PREV_VERSION: ${{ steps.prev.outputs.version }}
+        run: node scripts/check-userscript.mjs ucas-psych-autoanswer.user.js
