@@ -116,3 +116,12 @@ const CONFIG = {
 - 系统说明明确"拒绝作答、作答不完整或故意歪曲作答的个体将被甄别"，且每题记录作答时间；本脚本的健康作答与时长模拟**不保证**不被任何服务端规则识别。
 - 16PF 计分键来自公开资料，已抽样核对关键题（如第 28 题应选"石头"），但不对结果解释负责。
 - 本脚本仅供学习研究，请遵守学校相关管理规定，使用者自行承担全部责任。
+
+## 七、作者
+
+- **作者**：Xinpei Zhang
+- **GitHub**：[@zhan-nine](https://github.com/zhan-nine)
+- **项目主页**：<https://github.com/zhan-nine/UCAS_Xinshang_auto>
+- **问题反馈**：<https://github.com/zhan-nine/UCAS_Xinshang_auto/issues>
+
+© 2026 Xinpei Zhang. 仅供个人学习与研究使用。

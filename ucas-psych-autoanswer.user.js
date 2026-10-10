@@ -3,7 +3,8 @@
 // @namespace    local.ucas.psych.autoanswer
 // @version      1.2.0
 // @description  在国科大"心赏"心理测评系统自动完成 抑郁自评(SDS)、自杀态度(QSA)、大学生人格(UPI)、卡特尔16PF 四个量表（健康/正常方向作答）。需先手动登录，登录后一键答题。
-// @author       zhan-nine
+// @author       Xinpei Zhang (zhan-nine)
+// @copyright    2026 Xinpei Zhang
 // @homepageURL  https://github.com/zhan-nine/UCAS_Xinshang_auto
 // @supportURL   https://github.com/zhan-nine/UCAS_Xinshang_auto/issues
 // @match        https://mhec.ucas.ac.cn/*
@@ -11,6 +12,19 @@
 // @run-at       document-idle
 // @connect      mhec.ucas.ac.cn
 // ==/UserScript==
+
+/*
+ * UCAS 国科大"心赏"心理测评自动答题
+ * ---------------------------------------------------------------
+ * 作者 / Author : Xinpei Zhang
+ * GitHub        : zhan-nine
+ * 项目主页      : https://github.com/zhan-nine/UCAS_Xinshang_auto
+ * 反馈 / Issues : https://github.com/zhan-nine/UCAS_Xinshang_auto/issues
+ *
+ * © 2026 Xinpei Zhang. 本脚本仅供个人学习与研究使用，
+ * 使用本脚本产生的一切后果由使用者自行承担（详见仓库 README 免责声明）。
+ * ---------------------------------------------------------------
+ */
 
 (function () {
   'use strict';
@@ -605,8 +619,25 @@
     body.appendChild(preview);
     body.appendChild(logHead);
     body.appendChild(ui.log);
+
+    // 署脚：作者 + GitHub 链接
+    const footer = document.createElement('div');
+    footer.style.cssText = 'padding:6px 12px;border-top:1px solid #eef1f5;background:#fafbfc;' +
+      'font-size:11px;color:#8a93a0;display:flex;justify-content:space-between;align-items:center;gap:8px';
+    const credit = document.createElement('span');
+    credit.textContent = '© 2026 Xinpei Zhang';
+    const gh = document.createElement('a');
+    gh.href = 'https://github.com/zhan-nine/UCAS_Xinshang_auto';
+    gh.target = '_blank';
+    gh.rel = 'noopener noreferrer';
+    gh.textContent = 'GitHub @zhan-nine';
+    gh.style.cssText = 'color:#2f7bff;text-decoration:none';
+    footer.appendChild(credit);
+    footer.appendChild(gh);
+
     panel.appendChild(head);
     panel.appendChild(body);
+    panel.appendChild(footer);
     document.body.appendChild(panel);
 
     logToggle.addEventListener('click', function () {
@@ -622,6 +653,7 @@
       collapse.textContent = collapsed ? '+' : '—';
       if (!collapsed) panel.style.width = '288px';
       if (collapsed) panel.style.width = 'auto';
+      footer.style.display = collapsed ? 'none' : 'flex';
     });
 
     refreshIdleStatus();
