@@ -1,7 +1,7 @@
 # UCAS_Xinshang_auto —— 国科大心赏心理测评自动答题插件
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-2f7bff.svg)
-![Version](https://img.shields.io/badge/version-1.5.0-34c759.svg)
+![Version](https://img.shields.io/badge/version-1.5.1-34c759.svg)
 ![Platform](https://img.shields.io/badge/Tampermonkey-userscript-orange.svg)
 
 插件名称：**UCAS 国科大心赏心理测评自动答题 (SDS/QSA/UPI/16PF)**
@@ -322,11 +322,11 @@ const CONFIG = {
 
 **发布流程**
 
-1. 修改 `ucas-psych-autoanswer.user.js`，并**提升 `@version`**（例如 `1.4.0 → 1.5.0`）。
+1. 修改 `ucas-psych-autoanswer.user.js`，并**提升 `@version`**（例如 `1.5.0 → 1.5.1`）。
 2. 提交并推送：
 
    ```bash
-   git add -A && git commit -m "v1.5.0: ..." && git push origin main
+   git add -A && git commit -m "v1.5.1: ..." && git push origin main
    ```
 
 3. GitHub Actions（[`.github/workflows/validate-userscript.yml`](.github/workflows/validate-userscript.yml)）会依次执行：语法检查、**页面识别回归测试**、**作答剖面（计分）回归测试**、元数据校验与 **`@version` 递增检查**；

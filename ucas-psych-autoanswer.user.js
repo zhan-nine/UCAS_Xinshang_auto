@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         UCAS 国科大心赏心理测评自动答题 (SDS/QSA/UPI/16PF)
 // @namespace    local.ucas.psych.autoanswer
-// @version      1.5.0
+// @version      1.5.1
 // @description  在国科大"心赏"心理测评系统自动完成 抑郁自评(SDS)、自杀态度(QSA)、大学生人格(UPI)、卡特尔16PF 四个量表（健康/正常方向作答）。需先手动登录，登录后一键答题。
 // @author       Xinpei Zhang (zhan-nine)
 // @copyright    2026 Xinpei Zhang
@@ -292,7 +292,7 @@
   // ---------------------------------------------------------------------------
 
   // SDS：症状题分值 = 选项索引+1，正向题分值 = 4-选项索引；粗分 20(最低)~80(最高)
-  //   'normal' → 粗分落在 CONFIG.profile.sdsRaw（默认 32~36 → 标准分 40~45）
+  //   'normal' → 粗分落在 CONFIG.profile.sdsRaw（默认 30~38 → 标准分 38~48）
   //   'ideal'  → 粗分 20（旧行为，全部取最低分）
   function buildSDS(paperInfo) {
     const list = paperInfo.QuestionList || [];
@@ -302,7 +302,7 @@
     const extra = list.map(function () { return 0; }); // 每题相对最低分的加分（0~3）
 
     if (profileMode() === 'normal') {
-      const target = sampleInt(CONFIG.profile && CONFIG.profile.sdsRaw, [32, 36]);
+      const target = sampleInt(CONFIG.profile && CONFIG.profile.sdsRaw, [30, 38]);
       let need = Math.max(0, target - n);              // 基础粗分 = n（每题 1 分）
       const cand = [];
       for (let i = 0; i < n; i++) if (!critical[i]) cand.push(i);
@@ -349,7 +349,7 @@
 
   // UPI：编号 1~60 计入总分，任一"是/有"记 1 分
   //   测伪题(5/20/35/50) → "有"；关键题(含第25题"想轻生") → "否"
-  //   'normal' → 阳性题数落在 CONFIG.profile.upiAffirm（默认 4~8，远低于阈值 25）
+  //   'normal' → 阳性题数落在 CONFIG.profile.upiAffirm（默认 3~9，远低于阈值 25）
   //   'ideal'  → 阳性 0（旧行为）
   function buildUPI(paperInfo) {
     const list = paperInfo.QuestionList || [];
@@ -365,7 +365,7 @@
         if (qn > 60 || isLie(i) || isCritical(i)) continue;
         cand.push(i);
       }
-      const k = sampleInt(CONFIG.profile && CONFIG.profile.upiAffirm, [4, 8]);
+      const k = sampleInt(CONFIG.profile && CONFIG.profile.upiAffirm, [3, 9]);
       sampleK(cand, k).forEach(function (i) { yes.add(i); });
     }
 
