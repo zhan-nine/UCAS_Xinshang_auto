@@ -1,7 +1,7 @@
 # UCAS_Xinshang_auto —— 国科大心赏心理测评自动答题插件
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-2f7bff.svg)
-![Version](https://img.shields.io/badge/version-1.3.3-34c759.svg)
+![Version](https://img.shields.io/badge/version-1.4.0-34c759.svg)
 ![Platform](https://img.shields.io/badge/Tampermonkey-userscript-orange.svg)
 
 插件名称：**UCAS 国科大心赏心理测评自动答题 (SDS/QSA/UPI/16PF)**
@@ -24,6 +24,7 @@
 - [安装（三步快速版）](#安装三步快速版)
 - [一、新手完整教程（没用过油猴必读）](#一新手完整教程没用过油猴必读)
 - [二、使用](#二使用)
+  - [关于 URL 大小写（实测结论）](#关于-url-大小写实测结论)
 - [三、配置（脚本顶部 `CONFIG`）](#三配置脚本顶部-config)
 - [四、作答规则](#四作答规则)
 - [五、接口说明](#五接口说明)
@@ -181,7 +182,9 @@
 ## 二、使用
 
 1. 在浏览器里**手动登录**系统（含滑块验证）。
-2. 打开待测页：`https://mhec.ucas.ac.cn/Visitors/Waiting_test?MenuID=111`（注意路径大小写为 `Visitors`）。
+2. 打开待测页：`https://mhec.ucas.ac.cn/Visitors/Waiting_test?MenuID=111`。
+   - **URL 大小写不影响**（见下文"关于 URL 大小写"）：`/visitors/waiting_test`、`/VISITORS/WAITING_TEST`、带尾斜杠都能正常打开。
+   - ⚠️ 页面必须是「**本人待测**」页。若进的是 `/Client/Waiting_test`（"来访者测试"，给他人作答），脚本**不会**显示面板。
 3. 页面右下角出现"心赏自动答题"悬浮面板：
    - **⚡ 一键自动答题**（主按钮）：直接依次完成全部待测量表并提交。
    - `SDS · 抑郁自评` / `QSA · 自杀态度` / `UPI · 人格测验` / `16PF · 16 种人格`：单独完成某一卷。
@@ -190,6 +193,29 @@
 4. 默认即为"一键答题"（**dry-run 关闭**，会真实提交）；如需先核对，点"仅预览（不提交）"。
 
 > 脚本复用你登录后的 `sessionStorage.Authorization`（JWT）与 Cookie 调用接口，不涉及账号密码。
+
+### 关于 URL 大小写（实测结论）
+
+有用户反馈"URL 大小写"问题，本项目已**单独实测**，结论是：**大小写不影响使用，无需在意大小写**。
+
+- **服务器**：对 `/Visitors/Waiting_test`、`/visitors/Waiting_test`、`/VISITORS/WAITING_TEST` 均返回同一份页面（HTTP 200，内容等长）。
+- **前端路由**：站点使用 vue-router `3.6.5`（history 模式），路由为 `{path:"/Visitors/Waiting_test", name:"Waiting_test"}`，**未声明 `caseSensitive`**；`path-to-regexp` 的 flags 为 `sensitive ? "" : "i"`，故默认**大小写不敏感**。真实站点上调用 `router.resolve()` 的实测结果：
+
+  | 输入 | 匹配段数 `matched` | 路由名 `name` |
+  |---|---|---|
+  | `/Visitors/Waiting_test` | 2 | `Waiting_test` |
+  | `/visitors/waiting_test` | 2 | `Waiting_test` |
+  | `/VISITORS/WAITING_TEST` | 2 | `Waiting_test` |
+  | `/Visitors/Waiting_Test` | 2 | `Waiting_test` |
+  | `/Visitors/Waiting_test/`（尾斜杠） | 2 | `Waiting_test` |
+  | `/Client/Waiting_test` | 2 | `/Waiting_test`（**另一条路由**） |
+
+- **脚本的鲁棒写法**：面板显示判定同时使用三条依据，任一命中即可，避免因写法差异失效：
+  1. DOM 标记 `.Wait-test-content`（组件真正渲染，最可靠）；
+  2. Vue 路由名 `=== "Waiting_test"`（与 URL 写法完全无关）；
+  3. 路径正则 `/^\/visitors\/waiting_test\/?$/i`（大小写不敏感、容忍尾斜杠）。
+- **只认「本人待测」页**：`/Client/Waiting_test`（来访者测试）走的是另一个接口 `ScaleIssue/GetvisitorWaitText`，本脚本不支持，会被明确排除并在控制台给出提示。
+- 该判定已固化为[回归测试](scripts/test-page-match.mjs)，CI 每次推送都会校验。
 
 ## 三、配置（脚本顶部 `CONFIG`）
 
@@ -253,7 +279,8 @@ const CONFIG = {
 ## 五、接口说明
 
 - 基地址 `https://mhec.ucas.ac.cn:8019/`，请求为 `application/json`，鉴权用 `Authorization` 头。
-- `POST ScaleIssue/GetLfzWaitText` → 待测列表
+- `POST ScaleIssue/GetLfzWaitText` → 本人待测列表（`/Visitors/Waiting_test` 页使用，本脚本采用）
+- `POST ScaleIssue/GetvisitorWaitText` → 来访者待测列表（`/Client/Waiting_test` 页使用，**本脚本不采用**）
 - `POST Paper/GetPaperInfo` `{SourceNo,PaperID,UserID}` → 取卷（含 `PaperResultID`、`QuestionList`）
 - `POST Paper/Submit` `{data:{...}}` → 交卷；`TmpResult` 每答一题拼一段 `;题ID|选项ID|开始|结束|填空|父选项|上一题号`，时间格式 `YYYY/M/D H:mm:ss`。
 
@@ -282,15 +309,15 @@ const CONFIG = {
 
 **发布流程**
 
-1. 修改 `ucas-psych-autoanswer.user.js`，并**提升 `@version`**（例如 `1.3.2 → 1.3.3`）。
+1. 修改 `ucas-psych-autoanswer.user.js`，并**提升 `@version`**（例如 `1.3.3 → 1.4.0`）。
 2. 提交并推送：
 
    ```bash
-   git add -A && git commit -m "v1.3.3: ..." && git push origin main
+   git add -A && git commit -m "v1.4.0: ..." && git push origin main
    ```
 
-3. GitHub Actions（[`.github/workflows/validate-userscript.yml`](.github/workflows/validate-userscript.yml)）会做语法检查、元数据校验与 **`@version` 递增检查**；
-   若忘记升版本，CI 会失败并提示。
+3. GitHub Actions（[`.github/workflows/validate-userscript.yml`](.github/workflows/validate-userscript.yml)）会依次执行：语法检查、**页面识别回归测试**、元数据校验与 **`@version` 递增检查**；
+   若忘记升版本或测试不过，CI 会失败并提示。
 4. 推送即生效：raw 几分钟内更新，Tampermonkey 在下一次检查更新时自动升级。
 
 **以后上架 Greasy Fork**

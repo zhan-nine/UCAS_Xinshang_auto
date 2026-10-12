@@ -6,12 +6,14 @@ on:
     paths:
       - 'ucas-psych-autoanswer.user.js'
       - 'scripts/check-userscript.mjs'
+      - 'scripts/test-page-match.mjs'
       - '.github/workflows/validate-userscript.yml'
   pull_request:
     branches: [main]
     paths:
       - 'ucas-psych-autoanswer.user.js'
       - 'scripts/check-userscript.mjs'
+      - 'scripts/test-page-match.mjs'
   workflow_dispatch:
 
 jobs:
@@ -30,6 +32,9 @@ jobs:
 
       - name: Syntax check
         run: node --check ucas-psych-autoanswer.user.js
+
+      - name: Page-match unit tests
+        run: node scripts/test-page-match.mjs
 
       - name: Resolve previous @version
         id: prev

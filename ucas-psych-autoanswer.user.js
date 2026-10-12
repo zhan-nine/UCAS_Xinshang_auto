@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         UCAS 国科大心赏心理测评自动答题 (SDS/QSA/UPI/16PF)
 // @namespace    local.ucas.psych.autoanswer
-// @version      1.3.3
+// @version      1.4.0
 // @description  在国科大"心赏"心理测评系统自动完成 抑郁自评(SDS)、自杀态度(QSA)、大学生人格(UPI)、卡特尔16PF 四个量表（健康/正常方向作答）。需先手动登录，登录后一键答题。
 // @author       Xinpei Zhang (zhan-nine)
 // @copyright    2026 Xinpei Zhang
@@ -665,10 +665,71 @@
     refreshIdleStatus();
   }
 
-  // 只在待测页出现面板
+  // ---------------------------------------------------------------------------
+  // 页面识别（鲁棒）
+  //   · 大小写不敏感、容忍尾斜杠与查询串
+  //   · 排除"来访者测试"页 /Client/Waiting_test（它用的是另一个接口
+  //     ScaleIssue/GetvisitorWaitText，本脚本不支持）
+  //
+  // 实测依据（2026-10，真实站点）：
+  //   vue-router 3.6.5 / history 模式，路由 {path:"/Visitors/Waiting_test", name:"Waiting_test"}
+  //   未声明 caseSensitive，path-to-regexp 的 flags 为 `sensitive ? "" : "i"` → 默认不敏感。
+  //   实测 resolve() 对 /Visitors/Waiting_test、/visitors/waiting_test、/VISITORS/WAITING_TEST
+  //   均匹配到同一条 name="Waiting_test" 路由；服务器对任意大小写都返回同一 SPA 外壳。
+  //   而 /Client/Waiting_test 的 name 为 "/Waiting_test"，是另一条路由。
+  // ---------------------------------------------------------------------------
+  const WAITING_PATH_RE = /^\/visitors\/waiting_test\/?$/i; // 尾斜杠可选
+  const WAITING_ROUTE_NAMES = ['Waiting_test'];             // 仅"本人待测"页
+  const WAITING_DOM_SELECTOR = '.Wait-test-content';        // 仅该页组件渲染
+  const CLIENT_ROUTE_NAMES = ['/Waiting_test'];             // "来访者测试"页（不支持）
+
+  // 纯函数：便于离线单测（不触碰 DOM / location）
+  function isWaitingPageForSelf(info) {
+    info = info || {};
+    if (info.hasDomMarker) return true;                    // 组件已渲染：最可靠
+    if (info.routeName && WAITING_ROUTE_NAMES.indexOf(info.routeName) >= 0) return true;
+    if (info.pathname && WAITING_PATH_RE.test(info.pathname)) return true;
+    return false;
+  }
+
+  function getVueRouter() {
+    try {
+      const el = document.querySelector('#app') || document.body.firstElementChild;
+      const vm = el && el.__vue__;
+      const r = vm && (vm.$router || (vm.$root && vm.$root.$router));
+      return r || null;
+    } catch (e) { return null; }
+  }
+
+  function getRouteName() {
+    try {
+      const r = getVueRouter();
+      return (r && r.currentRoute && r.currentRoute.name) || null;
+    } catch (e) { return null; }
+  }
+
+  function currentPathname() {
+    try { return decodeURIComponent(location.pathname); } catch (e) { return location.pathname; }
+  }
+
+  function probePage() {
+    return {
+      hasDomMarker: !!document.querySelector(WAITING_DOM_SELECTOR),
+      routeName: getRouteName(),
+      pathname: currentPathname(),
+    };
+  }
+
+  let clientPageHinted = false;
   function tryInject() {
-    const onWaiting = /Waiting_test/i.test(location.href) || document.querySelector('.Wait-test-content');
-    if (onWaiting) injectPanel();
+    if (document.getElementById('ucas-aa-panel')) return;
+    const info = probePage();
+    if (isWaitingPageForSelf(info)) { injectPanel(); return; }
+    // 在"来访者测试"页给一次提示（本脚本只支持"本人待测"页）
+    if (info.routeName && CLIENT_ROUTE_NAMES.indexOf(info.routeName) >= 0 && !clientPageHinted) {
+      clientPageHinted = true;
+      log('提示：当前是"来访者测试"页（他人测评），本脚本只支持"本人待测"页 /Visitors/Waiting_test，故不显示面板。');
+    }
   }
 
   const api = {
@@ -687,12 +748,17 @@
     buildTmpResult: buildTmpResult,
     PF16_KEY: PF16_KEY,
     injectPanel: injectPanel,
+    // 页面识别（导出以便离线单测）
+    isWaitingPageForSelf: isWaitingPageForSelf,
+    probePage: probePage,
   };
   // 浏览器环境下启动 UI
   if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     window.UCASPsychAutoAnswer = api;
     tryInject();
-    setInterval(tryInject, 2000);
+    // SPA 路由切换不会刷新页面，用轮询 + popstate 兜底
+    setInterval(tryInject, 1000);
+    window.addEventListener('popstate', tryInject);
     log('脚本已加载。登录后在本页点击面板按钮即可。当前登录 UserID=' + (decodeJwtUserId() || '(未登录)'));
   }
   // Node 环境下可复用纯规则逻辑做离线校验
