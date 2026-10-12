@@ -7,6 +7,7 @@ on:
       - 'ucas-psych-autoanswer.user.js'
       - 'scripts/check-userscript.mjs'
       - 'scripts/test-page-match.mjs'
+      - 'scripts/test-scoring.mjs'
       - '.github/workflows/validate-userscript.yml'
   pull_request:
     branches: [main]
@@ -14,6 +15,7 @@ on:
       - 'ucas-psych-autoanswer.user.js'
       - 'scripts/check-userscript.mjs'
       - 'scripts/test-page-match.mjs'
+      - 'scripts/test-scoring.mjs'
   workflow_dispatch:
 
 jobs:
@@ -35,6 +37,9 @@ jobs:
 
       - name: Page-match unit tests
         run: node scripts/test-page-match.mjs
+
+      - name: Answer-profile (scoring) tests
+        run: node scripts/test-scoring.mjs
 
       - name: Resolve previous @version
         id: prev

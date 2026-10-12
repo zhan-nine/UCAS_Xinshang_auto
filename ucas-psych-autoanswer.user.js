@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         UCAS 国科大心赏心理测评自动答题 (SDS/QSA/UPI/16PF)
 // @namespace    local.ucas.psych.autoanswer
-// @version      1.4.0
+// @version      1.5.0
 // @description  在国科大"心赏"心理测评系统自动完成 抑郁自评(SDS)、自杀态度(QSA)、大学生人格(UPI)、卡特尔16PF 四个量表（健康/正常方向作答）。需先手动登录，登录后一键答题。
 // @author       Xinpei Zhang (zhan-nine)
 // @copyright    2026 Xinpei Zhang
@@ -46,17 +46,28 @@
     // 作答节奏：'timed' 会模拟每题作答时长并真实等待；'instant' 立即提交。
     // 提速：默认每题 180~360ms（逐题随机），四卷合计约 1.5 分钟；可自行调小。
     pacing: { mode: 'timed', minMs: 180, maxMs: 360 },
-    // 16PF 各因子"健康"极向：
+
+    // 作答剖面（核心策略）
+    //   mode: 'normal' = 各量表落在"正常范围"内（默认，不再取极端理想值）
+    //         'ideal'  = 旧的极端理想剖面（SDS/UPI 压到最低、16PF 取极端极向）
+    // 注意：无论哪种模式，关键题（SDS 第19题、UPI 第25题/测伪题、16PF 效度题）都锁定。
+    profile: {
+      mode: 'normal',
+      sdsRaw: [30, 38],    // SDS 粗分目标区间（标准分 ≈ 38~48，属"无抑郁"正常区）
+      upiAffirm: [3, 9],   // UPI 阳性题数目标（不含 4 道测伪题；<25 即无阳性）
+      pf16Dev: 3,          // 16PF 各因子总分相对"中间值"的最大偏离（±3 → sten 约 4~6）
+    },
+
+    // QSA：态度量表，默认"赞同题偏赞同 / 不赞同题偏不赞同"，靠 per-item 概率产生差异
+    qsaExtreme: false,     // true=更偏向"完全赞同/完全不赞同"
+
+    // 仅 profile.mode='ideal' 时使用的 16PF 极向
     //   high = 高分即理想，low = 低分即理想，mid = 居中即理想
     pf16Pole: {
       high: ['A', 'B', 'C', 'F', 'G', 'H', 'Q3'],
       low: ['L', 'O', 'Q4'],
       mid: ['E', 'I', 'M', 'N', 'Q1', 'Q2'],
     },
-    qsaExtreme: false,                 // false=用"比较赞同/比较不赞同"，true=用"完全赞同/完全不赞同"
-    // 少量随机性：仅在"安全变体"范围内随机，不影响整体健康结论；
-    // rate=每题被替换为安全变体的概率，maxFraction=每卷变体数量上限占比。
-    randomness: { enabled: true, rate: 0.08, maxFraction: 0.12 },
   };
 
   // ---------------------------------------------------------------------------
@@ -85,6 +96,8 @@
 
   // SDS：正向题（反向计分）——健康作答应选"绝大部分或全部时间"（最后一个选项）
   const SDS_POSITIVE_ITEMS = new Set([2, 5, 6, 11, 12, 14, 16, 17, 18, 20]);
+  // SDS 关键题：第 19 题（自杀意念），任何模式下都锁定为最低分项
+  const SDS_CRITICAL_ITEM = 19;
 
   // QSA：珍视生命方向。选"赞同"的题号 / 选"不赞同"的题号
   const QSA_AGREE_ITEMS = new Set([1, 2, 4, 6, 7, 9, 11, 12, 13, 22, 24, 25]);
@@ -227,129 +240,252 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 随机性：只在"安全变体"集合内随机；关键题（critical）永不随机
+  // 作答剖面工具
   // ---------------------------------------------------------------------------
-  function applyRandomness(specs) {
-    const cfg = CONFIG.randomness || {};
-    const chosen = specs.map(function (s) {
-      if (!cfg.enabled || s.critical || !s.alt || !s.alt.length) return s.primary;
-      if (Math.random() < (cfg.rate || 0)) return s.alt[Math.floor(Math.random() * s.alt.length)];
-      return s.primary;
-    });
-    // 数量上限，避免随机过多
-    const max = Math.max(1, Math.round(specs.length * (cfg.maxFraction || 0.12)));
-    const idxs = [];
-    chosen.forEach(function (st, i) { if (st !== specs[i].primary) idxs.push(i); });
-    for (let i = idxs.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const t = idxs[i]; idxs[i] = idxs[j]; idxs[j] = t;
-    }
-    idxs.slice(max).forEach(function (i) { chosen[i] = specs[i].primary; });
-    return chosen;
+  function profileMode() {
+    return (CONFIG.profile && CONFIG.profile.mode) || 'normal';
   }
 
-  function resolveAnswers(paperInfo, specs) {
-    const strategies = applyRandomness(specs);
-    return specs.map(function (s, i) {
-      const a = pickAnswer(paperInfo.QuestionList[i], strategies[i]);
+  function sampleInt(range, fallback) {
+    const lo = range && range[0] != null ? range[0] : fallback[0];
+    const hi = range && range[1] != null ? range[1] : fallback[1];
+    return randInt(Math.min(lo, hi), Math.max(lo, hi));
+  }
+
+  // 从数组中等概率取 k 个（不重复）
+  function sampleK(arr, k) {
+    const pool = arr.slice();
+    const out = [];
+    k = Math.max(0, Math.min(k, pool.length));
+    for (let i = 0; i < k; i++) {
+      const j = randInt(0, pool.length - 1);
+      out.push(pool[j]);
+      pool.splice(j, 1);
+    }
+    return out;
+  }
+
+  // 按权重表 [[value, weight], ...] 抽一个值
+  function weightedPick(pairs) {
+    let total = 0;
+    for (let i = 0; i < pairs.length; i++) total += pairs[i][1];
+    let r = Math.random() * total;
+    for (let i = 0; i < pairs.length; i++) {
+      r -= pairs[i][1];
+      if (r <= 0) return pairs[i][0];
+    }
+    return pairs[pairs.length - 1][0];
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = randInt(0, i);
+      const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  // ---------------------------------------------------------------------------
+  // 各量表作答生成
+  //   返回 [{questionId, strategy, critical, factor}]
+  //   随机性内建在"落区"的选取里（正常范围 / 理想剖面），关键题 critical=true 锁定。
+  // ---------------------------------------------------------------------------
+
+  // SDS：症状题分值 = 选项索引+1，正向题分值 = 4-选项索引；粗分 20(最低)~80(最高)
+  //   'normal' → 粗分落在 CONFIG.profile.sdsRaw（默认 32~36 → 标准分 40~45）
+  //   'ideal'  → 粗分 20（旧行为，全部取最低分）
+  function buildSDS(paperInfo) {
+    const list = paperInfo.QuestionList || [];
+    const n = list.length;
+    const positive = list.map(function (q, i) { return SDS_POSITIVE_ITEMS.has(i + 1); });
+    const critical = list.map(function (q, i) { return (i + 1) === SDS_CRITICAL_ITEM; });
+    const extra = list.map(function () { return 0; }); // 每题相对最低分的加分（0~3）
+
+    if (profileMode() === 'normal') {
+      const target = sampleInt(CONFIG.profile && CONFIG.profile.sdsRaw, [32, 36]);
+      let need = Math.max(0, target - n);              // 基础粗分 = n（每题 1 分）
+      const cand = [];
+      for (let i = 0; i < n; i++) if (!critical[i]) cand.push(i);
+      let guard = 0;
+      while (need > 0 && guard++ < 10000) {
+        const avail = cand.filter(function (i) { return extra[i] < 3; });
+        if (!avail.length) break;
+        const pick = avail[randInt(0, avail.length - 1)];
+        extra[pick] += 1;
+        need -= 1;
+      }
+    }
+
+    return list.map(function (q, i) {
+      const e = extra[i];
+      // 症状题：索引 0→e；正向题（反向计分）：索引 3→3-e
+      const idx = positive[i] ? (3 - e) : e;
       return {
-        questionId: s.questionId,
-        answerId: a && a.AnswerID,
-        optionName: a && a.AnswerName,
-        strategy: strategies[i],
-        factor: s.factor,
-        varied: strategies[i] !== s.primary,
+        questionId: q.QuestionID,
+        strategy: 'index:' + Math.max(0, Math.min(3, idx)),
+        critical: critical[i],
+        factor: '',
       };
     });
   }
 
-  // ---------------------------------------------------------------------------
-  // 各量表作答生成：返回"选择规格" [{questionId, primary, alt, critical, factor}]
-  //   primary = 健康方向的默认策略；alt = 仍属安全范围的可选变体；
-  //   critical = true 表示关键题，永不随机。
-  // ---------------------------------------------------------------------------
-  function buildSDS(paperInfo) {
-    return (paperInfo.QuestionList || []).map(function (q, i) {
-      const n = i + 1;
-      if (SDS_POSITIVE_ITEMS.has(n)) {
-        // 正向题：默认"绝大部分或全部时间"，偶尔退一格到"相当多时间"（仍属正向）
-        return { questionId: q.QuestionID, primary: 'last', alt: ['index:2'], critical: false };
-      }
-      // 症状题：默认"没有或很少"，偶尔到"小部分时间"；第19题(自杀意念)保护
-      return { questionId: q.QuestionID, primary: 'first', alt: ['index:1'], critical: n === 19 };
-    });
-  }
-
+  // QSA：态度量表，题内 5 级（0 完全不赞同 ~ 4 完全赞同）
+  //   赞同题 → 偏向 3/4；不赞同题 → 偏向 1/0；中立题 → 中间
+  //   逐题按权重抽样，因此每个用户的作答模式都不同（方向保持一致）
   function buildQSA(paperInfo) {
+    const ex = CONFIG.qsaExtreme;
+    const agreePairs = ex ? [[4, 0.62], [3, 0.26], [2, 0.12]] : [[3, 0.60], [4, 0.28], [2, 0.12]];
+    const disagreePairs = ex ? [[0, 0.62], [1, 0.26], [2, 0.12]] : [[1, 0.60], [0, 0.28], [2, 0.12]];
+    const neutralPairs = [[2, 0.7], [1, 0.15], [3, 0.15]];
     return (paperInfo.QuestionList || []).map(function (q, i) {
       const n = i + 1;
-      let primary;
-      let alt;
-      if (QSA_AGREE_ITEMS.has(n)) {
-        primary = CONFIG.qsaExtreme ? 'index:0' : 'index:1';
-        alt = CONFIG.qsaExtreme ? ['index:1'] : ['index:0'];
-      } else if (QSA_DISAGREE_ITEMS.has(n)) {
-        primary = CONFIG.qsaExtreme ? 'index:4' : 'index:3';
-        alt = CONFIG.qsaExtreme ? ['index:3'] : ['index:4'];
-      } else {
-        primary = 'index:2';
-        alt = ['index:1', 'index:3'];
-      }
-      return { questionId: q.QuestionID, primary: primary, alt: alt, critical: false };
+      let idx;
+      if (QSA_AGREE_ITEMS.has(n)) idx = weightedPick(agreePairs);
+      else if (QSA_DISAGREE_ITEMS.has(n)) idx = weightedPick(disagreePairs);
+      else idx = weightedPick(neutralPairs);
+      return { questionId: q.QuestionID, strategy: 'index:' + idx, critical: false, factor: '' };
     });
   }
 
+  // UPI：编号 1~60 计入总分，任一"是/有"记 1 分
+  //   测伪题(5/20/35/50) → "有"；关键题(含第25题"想轻生") → "否"
+  //   'normal' → 阳性题数落在 CONFIG.profile.upiAffirm（默认 4~8，远低于阈值 25）
+  //   'ideal'  → 阳性 0（旧行为）
   function buildUPI(paperInfo) {
-    return (paperInfo.QuestionList || []).map(function (q, i) {
-      const n = i + 1;
-      if (UPI_POSITIVE_ITEMS.has(n)) {
-        // 测伪题必须选"有"
-        return { questionId: q.QuestionID, primary: 'first', alt: [], critical: true };
+    const list = paperInfo.QuestionList || [];
+    const n = list.length;
+    const isLie = function (i) { return UPI_POSITIVE_ITEMS.has(i + 1); };
+    const isCritical = function (i) { return UPI_CRITICAL_ITEMS.has(i + 1); };
+
+    const yes = new Set();
+    if (profileMode() === 'normal') {
+      const cand = [];
+      for (let i = 0; i < n; i++) {
+        const qn = i + 1;
+        if (qn > 60 || isLie(i) || isCritical(i)) continue;
+        cand.push(i);
       }
-      // 一般症状题：默认"否"；少量允许"是"（仅增加极低总分，不会越过阳性阈值）
-      const critical = UPI_CRITICAL_ITEMS.has(n);
-      return { questionId: q.QuestionID, primary: 'last', alt: critical ? [] : ['first'], critical: critical };
+      const k = sampleInt(CONFIG.profile && CONFIG.profile.upiAffirm, [4, 8]);
+      sampleK(cand, k).forEach(function (i) { yes.add(i); });
+    }
+
+    return list.map(function (q, i) {
+      if (isLie(i)) return { questionId: q.QuestionID, strategy: 'first', critical: true, factor: '' };
+      if (isCritical(i)) return { questionId: q.QuestionID, strategy: 'last', critical: true, factor: '' };
+      return { questionId: q.QuestionID, strategy: yes.has(i) ? 'first' : 'last', critical: false, factor: '' };
     });
   }
 
+  // 16PF：非 B 因子每题三选项，"中间项(b)"=1 分、"高分项"=2 分、"低分项"=0 分
+  //   效度题(1/2/187) → "是的"；B(聪慧性) → 正确项，两者均锁定
+  //   'normal' → 每题按权重独立抽样(0/1/2)，再把因子总分夹到"中间值 ±pf16Dev"内
+  //              （逐题不同 → 每个用户模式不同；总分居中 → 不出现 0/满分极端）
+  //   'ideal'  → 旧行为：极向因子全取高/低分项（→ sten 10 / 0 / 5）
   function build16PF(paperInfo) {
-    const poles = CONFIG.pf16Pole;
-    return (paperInfo.QuestionList || []).map(function (q, i) {
-      const n = i + 1;
-      if (PF16_NO_SCORE_ITEMS.has(n)) {
-        // 效度题：固定选"是的"
-        return { questionId: q.QuestionID, primary: 'first', alt: [], critical: true, factor: '(效度)' };
+    const list = paperInfo.QuestionList || [];
+    const mode = profileMode();
+    const poles = CONFIG.pf16Pole || { high: [], low: [], mid: [] };
+    const out = new Array(list.length);
+    const groups = {};
+
+    for (let i = 0; i < list.length; i++) {
+      const qn = i + 1;
+      if (PF16_NO_SCORE_ITEMS.has(qn)) {
+        out[i] = { questionId: list[i].QuestionID, strategy: 'first', critical: true, factor: '(效度)' };
+        continue;
       }
-      const k = PF16_KEY[n];
-      if (!k) return { questionId: q.QuestionID, primary: 'middle', alt: [], critical: false, factor: '?' };
-      if (k.factor === 'B') {
-        // 聪慧性：固定选正确答案
-        return { questionId: q.QuestionID, primary: letterToStrategy(k.letter), alt: [], critical: true, factor: 'B↑' };
+      const k = PF16_KEY[qn];
+      if (!k) {
+        out[i] = { questionId: list[i].QuestionID, strategy: 'middle', critical: false, factor: '?' };
+        continue;
       }
-      let primary;
-      let alt;
-      let factor;
-      if (poles.high.indexOf(k.factor) >= 0) {
-        primary = letterToStrategy(k.letter);
-        alt = primary === 'middle' ? [] : ['middle'];   // 偶尔降到中间项，方向不变
-        factor = k.factor + '↑';
-      } else if (poles.low.indexOf(k.factor) >= 0) {
-        primary = invertStrategy(k.letter);
-        alt = primary === 'middle' ? [] : ['middle'];
-        factor = k.factor + '↓';
-      } else {
-        primary = 'middle';
-        const ex = letterToStrategy(k.letter);
-        alt = ex === 'middle' ? [] : [ex];              // 偶尔偏到高分侧，幅度很小
-        factor = k.factor + '·';
+      (groups[k.factor] = groups[k.factor] || []).push({ i: i, key: k });
+    }
+
+    // 逐题抽样权重：均值恰好为中间项（1 分）
+    const ITEM_PAIRS = [[0, 0.25], [1, 0.50], [2, 0.25]];
+
+    Object.keys(groups).forEach(function (factor) {
+      const items = groups[factor];
+      if (factor === 'B') {
+        items.forEach(function (o) {
+          out[o.i] = { questionId: list[o.i].QuestionID, strategy: letterToStrategy(o.key.letter), critical: true, factor: 'B↑' };
+        });
+        return;
       }
-      return { questionId: q.QuestionID, primary: primary, alt: alt, critical: false, factor: factor };
+
+      const n = items.length;
+      if (mode === 'ideal') {
+        const full = poles.high.indexOf(factor) >= 0;
+        const zero = poles.low.indexOf(factor) >= 0;
+        items.forEach(function (o) {
+          let st = 'middle';
+          if (full) st = letterToStrategy(o.key.letter);
+          else if (zero) st = invertStrategy(o.key.letter);
+          out[o.i] = { questionId: list[o.i].QuestionID, strategy: st, critical: false, factor: factor };
+        });
+        return;
+      }
+
+      // normal：逐题独立抽样 → 再夹到 [n-DEV, n+DEV]
+      const dev = CONFIG.profile && CONFIG.profile.pf16Dev != null ? Math.abs(CONFIG.profile.pf16Dev) : 3;
+      const vals = items.map(function () { return weightedPick(ITEM_PAIRS); });
+      let sum = vals.reduce(function (a, b) { return a + b; }, 0);
+
+      const lower = Math.max(0, n - dev);
+      const upper = Math.min(2 * n, n + dev);
+      // 降：把 2 分项改回中间项，再不够就把 1 分项降到 0
+      while (sum > upper) {
+        const twos = shuffle(items.map(function (_, k) { return k; }).filter(function (k) { return vals[k] === 2; }));
+        let done = false;
+        for (let t = 0; t < twos.length && sum > upper; t++) { vals[twos[t]] = 1; sum -= 1; done = true; }
+        if (!done) {
+          const ones = shuffle(items.map(function (_, k) { return k; }).filter(function (k) { return vals[k] === 1; }));
+          for (let t = 0; t < ones.length && sum > upper; t++) { vals[ones[t]] = 0; sum -= 1; }
+        }
+      }
+      // 升：把 0 分项改回中间项，再不够就把 1 分项升到 2
+      while (sum < lower) {
+        const zeros = shuffle(items.map(function (_, k) { return k; }).filter(function (k) { return vals[k] === 0; }));
+        let done = false;
+        for (let t = 0; t < zeros.length && sum < lower; t++) { vals[zeros[t]] = 1; sum += 1; done = true; }
+        if (!done) {
+          const ones = shuffle(items.map(function (_, k) { return k; }).filter(function (k) { return vals[k] === 1; }));
+          for (let t = 0; t < ones.length && sum < lower; t++) { vals[ones[t]] = 2; sum += 1; }
+        }
+      }
+
+      items.forEach(function (o, k) {
+        const v = vals[k];
+        let st = 'middle';
+        let tag = '·';
+        if (v === 2) { st = letterToStrategy(o.key.letter); tag = '↑'; }
+        else if (v === 0) { st = invertStrategy(o.key.letter); tag = '↓'; }
+        out[o.i] = { questionId: list[o.i].QuestionID, strategy: st, critical: false, factor: factor + tag };
+      });
     });
+
+    return out;
   }
 
   const BUILDERS = {
     SDS: buildSDS, QSA: buildQSA, UPI: buildUPI, '16PF': build16PF,
   };
+
+  // 把选择规格解析为具体选项
+  function resolveAnswers(paperInfo, specs) {
+    return specs.map(function (s, i) {
+      const a = pickAnswer(paperInfo.QuestionList[i], s.strategy);
+      return {
+        questionId: s.questionId,
+        answerId: a && a.AnswerID,
+        optionName: a && a.AnswerName,
+        strategy: s.strategy,
+        factor: s.factor,
+        critical: !!s.critical,
+      };
+    });
+  }
 
   // ---------------------------------------------------------------------------
   // TmpResult 组装（复刻前端 Submit 逻辑）
@@ -404,7 +540,7 @@
       a.questionIndex = i;
       return a;
     });
-    const variedCount = answers.filter(function (a) { return a.varied; }).length;
+    const lockedCount = answers.filter(function (a) { return a.critical; }).length;
 
     const missing = answers.filter(function (a) { return !a.answerId; });
     if (missing.length) throw new Error(paperId + ' 有 ' + missing.length + ' 题未匹配到选项');
@@ -436,12 +572,13 @@
       PaperResultID: paperInfo.PaperResultID,
       payload: payload,
       answers: answers,
-      variedCount: variedCount,
+      profile: profileMode(),
+      lockedCount: lockedCount,
     };
 
     if (opts.dryRun) {
-      log('  [dry-run] ' + paperId + ' 共 ' + answers.length + ' 题，随机变体 ' + variedCount +
-        ' 题，预计时长 ' + summary.durationSec + 's，未提交');
+      log('  [dry-run] ' + paperId + ' 共 ' + answers.length + ' 题，剖面 ' + profileMode() + '（关键题锁定 ' +
+        lockedCount + ' 题），预计时长 ' + summary.durationSec + 's，未提交');
       return summary;
     }
 
@@ -744,7 +881,7 @@
     buildUPI: buildUPI,
     build16PF: build16PF,
     resolveAnswers: resolveAnswers,
-    applyRandomness: applyRandomness,
+    profileMode: profileMode,
     buildTmpResult: buildTmpResult,
     PF16_KEY: PF16_KEY,
     injectPanel: injectPanel,
