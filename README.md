@@ -335,6 +335,7 @@ const CONFIG = {
 
 **以后上架 Greasy Fork**
 
+- 📄 **上架资料见 [`GREASYFORK.md`](GREASYFORK.md)**：内含各字段速填表、可直接粘贴的简介与详细说明、标签/语言建议、发布前检查清单。
 - 到 Greasy Fork 发布时可直接粘贴同一份代码；GF 会**重写** `@updateURL` / `@downloadURL` 指向它自己，故二者可共存、互不冲突。
 - 但请注意 GF 规定：脚本**主体功能必须完整地托管在 Greasy Fork 上**，不允许靠外链加载主体代码。
 - 若只想发布于 Greasy Fork，可删除 `@updateURL` / `@downloadURL`；CI 默认仅对其告警，设置环境变量 `STRICT_GF=1` 可改为报错。
