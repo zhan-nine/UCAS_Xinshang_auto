@@ -3,6 +3,9 @@
 > 本文件用于把本项目发布到 [Greasy Fork](https://greasyfork.org/)。
 > Greasy Fork 的发布表单是**分字段**的，下文按字段逐一给出可直接复制的内容。
 > 仓库地址：<https://github.com/zhan-nine/UCAS_Xinshang_auto>　当前版本：**1.5.1**
+>
+> ✅ **上架状态：已发布** —— 脚本页：<https://greasyfork.org/zh-CN/scripts/600498>（脚本 ID `600498`）
+> 本文档改动后，需要回到 GF 脚本页「编辑」里**重新粘贴 [第三节](#三详细说明additional-info-字段) 的内容**才会生效。
 
 ---
 
@@ -12,7 +15,7 @@
 |---|---|---|
 | **Script name（脚本名称）** | `UCAS 国科大心赏心理测评自动答题 (SDS/QSA/UPI/16PF)` | 100 |
 | **Description（简介）** | 见 [第二节](#二简介description-字段) | 500 |
-| **Additional info（详细说明）** | 见 [第三节](#三详细说明additional-info-字段) 全文粘贴 | 50000 |
+| **Additional info（详细说明）** | 见 [第三节](#三详细说明additional-info-字段)：**只复制 `COPY-BEGIN` ~ `COPY-END` 之间的内容** | 50000 |
 | **Script code（脚本代码）** | 粘贴仓库根目录 [`ucas-psych-autoanswer.user.js`](ucas-psych-autoanswer.user.js) 的**全部内容** | 2 MB |
 | **Language / 语言** | `中文（简体）` | — |
 | **License / 许可证** | `MIT License` | — |
@@ -34,8 +37,9 @@
 
 ## 三、详细说明（Additional info 字段）
 
-> 以下为 Markdown 正文，可直接整段复制到 **Additional info**。
+> ⬇️ **只复制下面两条 `COPY` 标记之间的内容**（含标记本身可删）到 **Additional info**，不要连本文件下半部分的"标签/同步/检查清单"一起复制过去（那是给作者自己看的）。
 
+<!-- COPY-BEGIN -->
 ```markdown
 国科大"心赏"心理测评（心理危机预防干预系统，`https://mhec.ucas.ac.cn`）的自动答题辅助脚本。
 **手动登录后一键**依次完成四个量表，四卷合计约 1.5 分钟。
@@ -49,14 +53,36 @@
 | 大学生人格测验 UPI | 64 | 单选（是/否、有/没有） |
 | 卡特尔 16 种人格因素测验 16PF | 187 | 单选（三选一） |
 
+## ⚠️ 装脚本之前：先确认油猴图标没有"红叉"
+
+**这一步最重要。跳过它，多半会以为"脚本是坏的"。**
+
+装好 Tampermonkey 后，看浏览器右上角工具栏的油猴图标：
+
+| 图标状态 | 含义 |
+|---|---|
+| 有**数字角标**（如 `1`、`2`） | ✅ **正常**：当前页面有 N 个脚本在运行 |
+| **灰暗、无角标** | 🟡 **一般也正常**：只是当前页面没有匹配的脚本 |
+| **左下角有红色叉子 ✗** | ❌ **异常**：浏览器没给油猴"执行脚本"的权限，**装了脚本也 100% 不生效** |
+
+**看到红叉，按顺序解决（下列方式满足任意一个即可）：**
+
+1. **Tampermonkey 被自己关掉了**：点油猴图标，看弹出菜单最上方——若显示「**启用 / Enabled**」，说明当前是禁用状态，点它切换成启用。
+2. **浏览器没授予油猴权限**（自 Tampermonkey **5.3+** 起，在 Chrome / Edge 上必须额外打开一个开关）：
+   - **Chrome 138 及以上**（推荐方式）：地址栏输入 `chrome://extensions`（Edge：`edge://extensions`）→ 找到 **Tampermonkey** 卡片 → 点「**详细信息 / Details**」→ 打开「**允许用户脚本 / Allow User Scripts**」。
+   - **Chrome 137 及以下**：同一个扩展管理页 → 打开页面**右上角**的「**开发者模式 / Developer mode**」。
+3. **被安全设置屏蔽**：若提示 `blacklisted by security settings`，进油猴「管理面板 → 设置 → 安全」，确认没有把 `mhec.ucas.ac.cn` 列入黑名单。
+
+改完**刷新页面**再看；红叉仍在，请**完全退出浏览器后重新打开**（不是只关窗口）。
+
 ## 安装
 
-1. 浏览器安装 [Tampermonkey](https://www.tampermonkey.net/)（或 Violentmonkey）。
-   - Chrome / Edge 装完请在扩展管理页打开「**开发者模式**」，否则脚本可能不生效。
-2. 点击本页的「安装此脚本」按钮，在油猴弹出的安装页点「安装」。
+1. 浏览器安装 [Tampermonkey](https://www.tampermonkey.net/)（或 Violentmonkey），并按上一节确认**油猴图标没有红叉**。
+2. 点击本页的「**安装此脚本**」按钮，在油猴弹出的安装页点「**安装**」。
 3. 确认脚本已启用，`@match` 允许 `https://mhec.ucas.ac.cn/*`。
 
-> 也支持从 GitHub 直装并自动更新：<https://github.com/zhan-nine/UCAS_Xinshang_auto>
+> 本脚本也发布在 GitHub，可直装并自动更新。两份是**同一份脚本**，**不要两个都装**（否则会出现两份同名脚本、互相覆盖更新）：
+> <https://github.com/zhan-nine/UCAS_Xinshang_auto>
 
 ## 使用
 
@@ -111,6 +137,7 @@
 - 问题反馈：<https://github.com/zhan-nine/UCAS_Xinshang_auto/issues>
 - 许可证：MIT License
 ```
+<!-- COPY-END -->
 
 ---
 
@@ -157,7 +184,9 @@ Greasy Fork **没有可直接调用的发布 API**，"自动更新"指的是：�
 
 ## 七、发布后
 
-- 把 GF 脚本页链接补到仓库 README 的「安装」章节（当前为 `（待补充）`）。
+- ✅ 脚本页已上线：<https://greasyfork.org/zh-CN/scripts/600498>（脚本 ID `600498`），仓库 README 顶部徽章与「安装」章节均已加入该链接。
+- ⚠️ **请核对线上 Description 的内容范围**：当前 GF 页面上把本文件**第三节之后的内部章节**（"四、标签与语言"、"五、同步与自动更新"、"六、发布前检查清单"、"七、发布后"）也一起展示出来了——那是只给作者自己看的内容，不建议公开展示。
+  重新编辑时请按 [第三节](#三详细说明additional-info-字段) 的 `COPY-BEGIN` / `COPY-END` 标记**只粘贴标记之间**的部分。
 - 建议在 GF 脚本页上传 1~2 张截图（待测页 + 悬浮面板），列表页展示效果更好。
 - 后续更新走 [第五节](#五同步与自动更新) 的流程；GF 会保留历史版本便于回滚。
 

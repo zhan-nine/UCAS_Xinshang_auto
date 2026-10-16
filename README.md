@@ -1,10 +1,16 @@
 # UCAS_Xinshang_auto —— 国科大心赏心理测评自动答题插件
 
+[![Greasy Fork](https://img.shields.io/badge/Greasy%20Fork-%E5%AE%89%E8%A3%85%E8%84%9A%E6%9C%AC-670000.svg)](https://greasyfork.org/zh-CN/scripts/600498)
 ![License: MIT](https://img.shields.io/badge/License-MIT-2f7bff.svg)
 ![Version](https://img.shields.io/badge/version-1.5.1-34c759.svg)
 ![Platform](https://img.shields.io/badge/Tampermonkey-userscript-orange.svg)
 
 插件名称：**UCAS 国科大心赏心理测评自动答题 (SDS/QSA/UPI/16PF)**
+
+> 🟢 **一键安装（Greasy Fork，推荐）**：[greasyfork.org/zh-CN/scripts/600498](https://greasyfork.org/zh-CN/scripts/600498)
+> 🐙 备用直装（GitHub）：[点此安装](https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js)
+>
+> ⚠️ 装之前请先确认**油猴没有出现"红叉"**（否则脚本必然不生效），详见 [1.2.1](#121-装完管理器后必做确认油猴没有红叉)。
 
 国科大"心赏"心理测评（心理危机预防干预系统，`https://mhec.ucas.ac.cn`）的自动答题油猴（Tampermonkey）插件。登录后**一键**即可自动完成四个量表：
 
@@ -22,6 +28,7 @@
 ## 目录
 
 - [安装（三步快速版）](#安装三步快速版)
+  - [❗ 装脚本前必看：油猴图标有没有"红叉"](#121-装完管理器后必做确认油猴没有红叉)
 - [一、新手完整教程（没用过油猴必读）](#一新手完整教程没用过油猴必读)
 - [二、使用](#二使用)
   - [关于 URL 大小写（实测结论）](#关于-url-大小写实测结论)
@@ -29,7 +36,7 @@
 - [四、作答规则](#四作答规则)
 - [五、接口说明](#五接口说明)
 - [六、风险与免责](#六风险与免责)
-- [七、发布与更新（GitHub 直发）](#七发布与更新github-直发)
+- [七、发布与更新](#七发布与更新)
 - [八、许可证](#八许可证)
 - [九、作者](#九作者)
 
@@ -38,9 +45,20 @@
 ## 安装（三步快速版）
 
 > 已经用过油猴？三步即可。**从没用过，请直接跳到[一、新手完整教程](#一新手完整教程没用过油猴必读)**，那里有每一屏该点哪里的图文级说明。
+>
+> ⚠️ **看得到红叉就别急着装**：如果油猴图标**左下角有红色叉子（✗）**，说明浏览器没授予油猴"执行脚本"的权限，此时**装了脚本也 100% 不生效**。先做 [1.2.1 的必做检查](#121-装完管理器后必做确认油猴没有红叉)。
 
-1. 给浏览器装上 **Tampermonkey** 扩展（Chrome / Edge 装完还需在扩展管理页打开「开发者模式」，原因见教程 1.2）。
-2. 点击 [**安装链接**](https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js) → 在油猴弹出的安装页点「安装」。
+1. 给浏览器装上 **Tampermonkey** 扩展，**并确认它的图标没有红叉**（见 [1.2.1](#121-装完管理器后必做确认油猴没有红叉)，Chrome / Edge 通常就卡在这一步）。
+2. 安装脚本（**二选一，都支持自动更新**）：
+
+   - 🟢 **Greasy Fork（推荐）**：打开 <https://greasyfork.org/zh-CN/scripts/600498> → 点页面上的「**安装此脚本**」→ 油猴弹窗点「**安装**」。
+   - 🐙 **GitHub 直装（备用）**：点 [**安装链接**](https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js) → 油猴弹窗点「**安装**」。
+     （若链接被拦截失效，可把下面这行复制到地址栏回车：）
+
+     ```
+     https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js
+     ```
+
 3. **手动登录**系统（含滑块验证）→ 打开 `https://mhec.ucas.ac.cn/Visitors/Waiting_test?MenuID=111` → 点右下角面板的「**⚡ 一键自动答题**」。
 
 ---
@@ -106,31 +124,70 @@
 - **iOS / iPadOS**：用 Safari + Tampermonkey（App Store），或 Userscripts、Stay 等管理器。
 - 手机端操作体验不如桌面，**建议在电脑上完成测评**。
 
+#### 1.2.1 装完管理器后必做：确认油猴没有红叉
+
+**第一步：看图标。** 装好 Tampermonkey 后，观察浏览器右上角工具栏上的油猴图标：
+
+| 图标状态 | 含义 |
+|---|---|
+| 图标上有**数字角标**（如 `1`、`2`） | ✅ **正常**：当前页面有 N 个脚本在运行 |
+| 图标**灰暗**、无角标 | 🟡 **一般也正常**：只是当前页面没有匹配的脚本（在 `mhec.ucas.ac.cn` 以外的页面常见） |
+| 图标**左下角有红色叉子 ✗** | ❌ **异常**：油猴被禁止执行脚本，**装任何脚本都不会生效** |
+
+> 鼠标悬停在红叉图标上，一般会弹出原因提示，例如 `Developer mode is required`（需要开发者模式）或 `blacklisted by security settings`（被安全设置屏蔽）。
+
+**第二步：按顺序排查红叉。**
+
+**① Tampermonkey 自己没被启用（最常见）**
+
+点一下油猴图标，看弹出菜单**最上方**：若显示的是「**启用 / Enabled**」，说明当前是**禁用**状态 → 点它切换成启用。
+
+**② 浏览器没有授予 Tampermonkey「执行用户脚本」权限（Chrome 138+ / Edge 上最常见）**
+
+自 Tampermonkey **5.3+** 起，在 Chromium 内核浏览器上**必须**额外打开一个权限开关，否则红叉常驻。下表两种方式**满足任意一个**即可：
+
+| 方式 | 适用版本 | 操作 |
+|---|---|---|
+| **A · 允许用户脚本**（推荐） | Chrome **138 及以上** | 地址栏输入 `chrome://extensions`（Edge：`edge://extensions`）回车 → 找到 **Tampermonkey** 卡片 → 点「**详细信息 / Details**」→ 找到「**允许用户脚本 / Allow User Scripts**」开关 → **打开** |
+| **B · 开发者模式** | Chrome **137 及以下** | 同一个扩展管理页 → 打开页面**右上角**的「**开发者模式 / Developer mode**」开关 |
+
+改完**刷新页面**再看；若红叉仍在，**完全退出浏览器并重新打开**（不是只关窗口）。
+
+**③ 该页面被安全设置屏蔽**
+
+若提示 `blacklisted by security settings`：点油猴图标 →「**管理面板 / Dashboard**」→「**设置 / Settings**」→ 检查「**安全 / Security**」里是否有屏蔽规则（黑名单、`@exclude` 等），把 `mhec.ucas.ac.cn` 移出屏蔽列表。
+
+> 📌 **一句话记住**：只要油猴图标左下角有**红叉**，就先把红叉解决掉，再去装脚本。这是本插件用户反馈里出现频率最高的"脚本没反应"原因。
+
 ### 1.3 第二步：安装本脚本
 
-1. 确认上一步的**管理器已安装完毕**，且它的图标出现在浏览器**右上角工具栏**（看不到图标就点一下工具栏的「拼图」形状按钮，把它固定出来）。
-2. **点击**下面的 [**安装链接**](https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js)，或把该链接复制到地址栏回车：
+1. 确认上一步的**管理器已安装完毕**，且它的图标出现在浏览器**右上角工具栏**（看不到图标就点一下工具栏的「拼图」形状按钮，把它固定出来），并且**图标没有红叉**（[1.2.1](#121-装完管理器后必做确认油猴没有红叉)）。
 
-   ```
-   https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js
-   ```
+2. **选一个安装源，点进去安装。** 推荐用 Greasy Fork（脚本页有完整说明，自动更新最稳）：
+
+   - **方式一（推荐）· Greasy Fork**：打开 <https://greasyfork.org/zh-CN/scripts/600498> → 点页面上的「**安装此脚本**」→ 油猴弹窗点「**安装**」。
+   - **方式二（备用）· GitHub 直装**：点 [**安装链接**](https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js) → 油猴弹窗点「**安装**」。
+     若链接被拦截失效，把下面这行复制到地址栏回车：
+
+     ```
+     https://raw.githubusercontent.com/zhan-nine/UCAS_Xinshang_auto/main/ucas-psych-autoanswer.user.js
+     ```
+
+   两种方式**都支持自动更新**，二选一即可。
 
 3. 油猴会**自动拦截**这个链接，弹出「**安装用户脚本**」页面，上面会显示脚本名称、版本、作者、适用网站（`@match`）。
 4. 点页面上的「**安装 / Install**」按钮。
 5. 若**没有弹出安装页**，而是直接显示了一大堆代码，请见下方 [1.6 常见问题](#16-常见问题防呆) 的 Q1。
 
-#### 备选安装方式（方式一失败时用）
+#### 备选安装方式（方式一、方式二失败时用）
 
-- **方式二·自动导入**：把链接换成 CDN 版本再点一次：`https://cdn.jsdelivr.net/gh/zhan-nine/UCAS_Xinshang_auto@main/ucas-psych-autoanswer.user.js`
-- **方式三·手动粘贴**（最保险）：点管理器图标 →「**管理面板 / Dashboard**」→ 左侧「**实用工具 / Utilities**」右侧或顶部菜单找「**+**」/「添加新脚本」→ 打开 [`ucas-psych-autoanswer.user.js`](ucas-psych-autoanswer.user.js) 全文，复制后**全选删除**编辑器里的模板内容、粘贴进去 → 按 `Ctrl+S`（Mac 为 `Cmd+S`）保存。
-- **方式四·Greasy Fork**（尚未上架）：
+- **方式三·CDN 自动导入**：把链接换成 jsDelivr 版本再点一次：`https://cdn.jsdelivr.net/gh/zhan-nine/UCAS_Xinshang_auto@main/ucas-psych-autoanswer.user.js`
+- **方式四·手动粘贴**（最保险）：点管理器图标 →「**管理面板 / Dashboard**」→ 左侧「**实用工具 / Utilities**」右侧或顶部菜单找「**+**」/「添加新脚本」→ 打开 [`ucas-psych-autoanswer.user.js`](ucas-psych-autoanswer.user.js) 全文，复制后**全选删除**编辑器里的模板内容、粘贴进去 → 按 `Ctrl+S`（Mac 为 `Cmd+S`）保存。
 
-  <!-- TODO: 由作者补上 Greasy Fork 安装链接 -->
-  `（待补充）`
-
-  > **Greasy Fork 说明**：Greasy Fork 对新注册账号有约 **7 天**的发布冷却期（反垃圾机制）。本脚本暂未上架 Greasy Fork，
-  > 作者计划于 **2026-10-17** 前后补充链接；在此之前请用上述直装方式，安装与自动更新均不受影响。
-  > Greasy Fork 会重写 `@updateURL` / `@downloadURL` 指向自身，因此同一份脚本可同时发布于 GitHub 与 Greasy Fork，二者互不冲突。
+> **两个安装源的关系**：这是**同一份脚本**，Greasy Fork 与 GitHub 直装**可共存、互不冲突**。
+> Greasy Fork 会**重写** `@updateURL` / `@downloadURL` 指向自身，所以**不要两个都装**，否则会同时存在两份同名脚本、互相覆盖。
+> 从 Greasy Fork 安装的用户，后续新版本由 Greasy Fork 自动推送（作者的同步流程见 [七、发布与更新](#七发布与更新)）。
+> Greasy Fork 对**新注册账号**有约 **7 天**的发布冷却期（作者已完成上架，链接即上方方式一）。
 
 ### 1.4 第三步：验证是否装好
 
@@ -147,21 +204,27 @@
 
 **Q1：点安装链接没反应，或页面直接显示一堆代码？**
 - 按顺序试：
-  1. 确认管理器**已安装且是启用状态**；
-  2. **刷新**该页面，或把链接重新粘贴到地址栏再回车；
-  3. 换**方式二**的 jsDelivr 链接再点一次；
-  4. 仍不行就用**方式三·手动粘贴**（最稳，一次成功）。
+  1. 确认管理器**已安装、已启用**，且图标**没有红叉**（见 [Q2](#16-常见问题防呆)）；
+  2. 换 **Greasy Fork 的脚本页**再试一次：<https://greasyfork.org/zh-CN/scripts/600498> —— 大多数情况这样就解决了；
+  3. **刷新**该页面，或把链接重新粘贴到地址栏再回车；
+  4. 换**方式三**的 jsDelivr 链接再点一次；
+  5. 仍不行就用**方式四·手动粘贴**（最稳，一次成功）。
 
-**Q2：Chrome / Edge 提示「此扩展程序可能已损坏」，或脚本装了却完全不生效？**
-- 打开 `chrome://extensions`（Edge：`edge://extensions`）→ 打开「**开发者模式 / 开发人员模式**」→ **完全重启浏览器**。这是 Chrome 新版最常见的坑。
+**Q2：油猴图标左下角有红色叉子 ✗，或 Chrome / Edge 提示「此扩展程序可能已损坏」，脚本装了却完全不生效？**
+
+- **红叉 = 浏览器没给油猴"执行脚本"的权限**，此时装什么脚本都不生效。完整排查见 [1.2.1](#121-装完管理器后必做确认油猴没有红叉)，最快两招：
+  1. **Chrome 138 及以上**：`chrome://extensions` → Tampermonkey 卡片 →「**详细信息**」→ 打开「**允许用户脚本 / Allow User Scripts**」；
+  2. **Chrome 137 及以下**：`chrome://extensions` → 打开右上角「**开发者模式**」。
+- 两个开关**满足其一**即可。改完**刷新页面**；若红叉仍在，**完全重启浏览器**。
 
 **Q3：已登录，但页面右下角没有「心赏自动答题」面板？**
-- 逐条排查（99% 是前三项）：
-  1. 当前网址是否为 `https://mhec.ucas.ac.cn/Visitors/Waiting_test?MenuID=111`（注意 **`Visitors` 首字母大写**，路径写错脚本不会触发）；
-  2. 按 `F5` **刷新页面**（脚本在页面加载后才注入）；
-  3. 点管理器图标，确认脚本**已启用**且**角标数字 ≥ 1**；
-  4. 打开管理面板，检查该脚本是否被误关闭、或显示报错；
-  5. 换 **Chrome / Edge / Firefox** 桌面版再试。
+- 逐条排查（99% 是前四项）：
+  1. **先看油猴图标左下角有没有红叉** —— 有红叉就先解决它（[1.2.1](#121-装完管理器后必做确认油猴没有红叉)），这是第一杀手；
+  2. 当前网址是否为 `https://mhec.ucas.ac.cn/Visitors/Waiting_test?MenuID=111`（**URL 大小写不影响**，但路径必须正确，且不能是 `/Client/Waiting_test` 来访者测试页）；
+  3. 按 `F5` **刷新页面**（脚本在页面加载后才注入）；
+  4. 点管理器图标，确认脚本**已启用**且**角标数字 ≥ 1**；
+  5. 打开管理面板，检查该脚本是否被误关闭、或显示报错；
+  6. 换 **Chrome / Edge / Firefox** 桌面版再试。
 
 **Q4：脚本会自动更新吗？怎么手动更新？**
 - 会。脚本内置了更新地址，管理器一般每 24 小时检查一次。
@@ -178,6 +241,11 @@
 **Q7：装脚本安全吗？**
 - 本脚本开源（[MIT](#八许可证)），代码可逐行审阅；它只读取你在 `mhec.ucas.ac.cn` 上的登录凭证（`sessionStorage` 中的 JWT）用于调用官方接口，且 `@match` 限定只在该网站生效。
 - **请勿**安装来源不明的脚本——管理器能读取你所有网站的页面内容，风险很高。
+
+**Q8：从 Greasy Fork 装还是从 GitHub 装？两者能同时装吗？**
+- 二选一即可，**功能完全相同**。推荐 Greasy Fork：<https://greasyfork.org/zh-CN/scripts/600498>。
+- ⚠️ **不要两个都装**：Greasy Fork 会重写脚本里的 `@updateURL` / `@downloadURL`，同时装两个来源会出现**两份同名脚本**、互相覆盖更新。
+- 若已装重复：打开管理面板，删掉**不要的那个来源**那一份即可（保留哪份都行，看你想用谁推送更新）。
 
 ## 二、使用
 
@@ -304,7 +372,7 @@ const CONFIG = {
 - 16PF 计分键来自公开资料，已抽样核对关键题（如第 28 题应选"石头"），但不对结果解释负责。
 - 本项目以 MIT 许可开源，初衷为学习与研究；请遵守学校相关管理规定，使用者自行承担全部责任（见[许可证](#八许可证)）。
 
-## 七、发布与更新（GitHub 直发）
+## 七、发布与更新
 
 本脚本以 GitHub 为主要发布源，用户无需 Greasy Fork 即可安装并自动更新。
 
@@ -333,12 +401,14 @@ const CONFIG = {
    若忘记升版本或测试不过，CI 会失败并提示。
 4. 推送即生效：raw 几分钟内更新，Tampermonkey 在下一次检查更新时自动升级。
 
-**以后上架 Greasy Fork**
+**Greasy Fork 上架状态：已发布 ✅**
 
+- 🟢 **脚本页**：<https://greasyfork.org/zh-CN/scripts/600498>（脚本 ID `600498`）
 - 📄 **上架资料见 [`GREASYFORK.md`](GREASYFORK.md)**：内含各字段速填表、可直接粘贴的简介与详细说明、标签/语言建议、发布前检查清单。
-- 到 Greasy Fork 发布时可直接粘贴同一份代码；GF 会**重写** `@updateURL` / `@downloadURL` 指向它自己，故二者可共存、互不冲突。
-- 但请注意 GF 规定：脚本**主体功能必须完整地托管在 Greasy Fork 上**，不允许靠外链加载主体代码。
-- 若只想发布于 Greasy Fork，可删除 `@updateURL` / `@downloadURL`；CI 默认仅对其告警，设置环境变量 `STRICT_GF=1` 可改为报错。
+- GF 会**重写** `@updateURL` / `@downloadURL` 指向它自己，故同一份脚本在 GitHub 与 Greasy Fork **可共存、互不冲突**（但**用户不要两个都装**）。
+- GF 规定：脚本**主体功能必须完整托管在 Greasy Fork 上**，不允许靠外链加载主体代码。
+- 若只想在 Greasy Fork 维护，可删除 `@updateURL` / `@downloadURL`；CI 默认仅对其告警，设置环境变量 `STRICT_GF=1` 可改为报错。
+- **更新 Greasy Fork 版本**：每次改完脚本**都要提升 `@version`**，然后在 GF 脚本页「编辑」里粘贴新代码保存；或在 GF 配置 Webhook / URL 同步自动拉取（详见 [`GREASYFORK.md` 第五节](GREASYFORK.md#五同步与自动更新)）。
 
 ## 八、许可证
 
